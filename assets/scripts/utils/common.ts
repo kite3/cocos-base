@@ -399,6 +399,29 @@ export const moveIn = (
   });
 };
 
+export const moveAndFadeIn = (
+  node: Node,
+  startPos: Vec3,
+  endPos: Vec3,
+  duration = 0.3,
+  easing: TweenEasing = "sineInOut"
+) => {
+  return new Promise((resolve) => {
+    const uiOpacity =
+      node.getComponent(UIOpacity) || node.addComponent(UIOpacity);
+    uiOpacity.opacity = 255;
+
+    node.setPosition(startPos);
+
+    tween(node)
+      .to(duration, { position: endPos }, { easing }) // 1秒钟从起始位置移动到终点
+      .call(() => {
+        resolve("");
+      })
+      .start();
+  });
+};
+
 /**
  * 淡出节点
  * @param node
