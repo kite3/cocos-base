@@ -14,11 +14,15 @@ export class ProgressBase extends Component {
 
   start() {
     this.resetProgress();
-    // globalEvent.on(GlobalEvent.ADD_PROGRESS, this.addProgress, this);
   }
 
-  onDestroy() {
-    // globalEvent.off(GlobalEvent.ADD_PROGRESS, this.addProgress, this);
+  /**
+   * 修复浮点数精度问题
+   * @param num 需要修复的数字
+   * @param precision 精度位数，默认1位小数
+   */
+  private fixFloatPrecision(num: number, precision: number = 1): number {
+    return Math.round(num * Math.pow(10, precision)) / Math.pow(10, precision);
   }
 
   /**
@@ -44,7 +48,9 @@ export class ProgressBase extends Component {
    */
   addProgress(time: number = 0.3, rate: number = 0.1): Promise<number> {
     return new Promise(resolve => {
-      this._rate += rate;
+      // 修复浮点数精度问题
+      this._rate = this.fixFloatPrecision(this._rate + rate);
+
       if (this._rate > 1) {
         this._rate = 1;
       }
@@ -69,5 +75,23 @@ export class ProgressBase extends Component {
         })
         .start();
     });
+  }
+
+  /**
+   * 设置进度值（用于外部直接设置）
+   * @param rate 进度值 (0-1)
+   */
+  setProgress(rate: number): void {
+    this._rate = this.fixFloatPrecision(Math.max(0, Math.min(1, rate)));
+    if (this.progressBar) {
+      this.progressBar.setScale(this._rate, this.progressBar.scale.y, 1);
+    }
+  }
+
+  /**
+   * 获取当前进度值
+   */
+  getProgress(): number {
+    return this._rate;
   }
 }
