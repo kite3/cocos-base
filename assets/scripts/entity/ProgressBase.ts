@@ -9,10 +9,13 @@ export class ProgressBase extends Component {
   progressBar: Node = null;
   @property(CCFloat)
   offsetY: number = 0;
+  @property(CCFloat)
+  initRate: number = 0;
 
   private _rate: number = 0;
 
   start() {
+    this._rate = this.initRate;
     this.resetProgress();
   }
 
