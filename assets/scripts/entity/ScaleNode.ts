@@ -30,6 +30,9 @@ export class ScaleNode extends Component {
             scale: new Vec3(maxScale, maxScale, 1)
           })
           .to(this.scaleTime, { scale: new Vec3(minScale, minScale, 1) })
+          .call(() => {
+            console.warn('call', this.node.name);
+          })
       )
       .start();
   }
@@ -38,6 +41,11 @@ export class ScaleNode extends Component {
     if (this._tipTween) {
       this._tipTween.stop();
       this._tipTween = null;
+      console.warn('stopTextScaleAnim', this.node.name);
     }
+
+    // 确保节点缩放回到初始状态
+    const originalScale = this.node.scale.x / this.maxScaleRate;
+    this.node.scale = new Vec3(originalScale, originalScale, 1);
   }
 }
