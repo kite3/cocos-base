@@ -377,6 +377,33 @@ export function scaleIn(
   });
 }
 
+export function scaleInBounce(
+  node: Node,
+  duration: number = 0.5,
+  overshoot: number = 1.15
+) {
+  return new Promise((resolve, reject) => {
+    node.active = true;
+    const originScale = node.scale.clone();
+    const overshootScale = new Vec3(
+      originScale.x * overshoot,
+      originScale.y * overshoot,
+      originScale.z
+    );
+
+    node.setScale(0, 0, 0);
+
+    tween(node)
+      .to(duration * 0.6, { scale: overshootScale }, { easing: 'quadOut' })
+      .to(duration * 0.4, { scale: originScale }, { easing: 'backOut' })
+      .call(() => {
+        resolve('');
+      })
+      .start();
+  });
+}
+
+
 export const moveIn = (
   node: Node,
   startPos: Vec3,
@@ -385,14 +412,10 @@ export const moveIn = (
   easing: TweenEasing = 'sineInOut'
 ) => {
   return new Promise(resolve => {
-    const uiOpacity =
-      node.getComponent(UIOpacity) || node.addComponent(UIOpacity);
-    uiOpacity.opacity = 255;
-
+    node.active = true
     node.setPosition(startPos);
 
-    tween(node)
-      .to(duration, { position: endPos }, { easing }) // 1秒钟从起始位置移动到终点
+    tween(node) // 1秒钟从起始位置移动到终点
       .call(() => {
         resolve('');
       })
@@ -406,6 +429,7 @@ export const moveIn = (
  * @param duration
  */
 export function fadeOut(node: Node, duration = 0.5) {
+  node.active = true
   const uiOpacity = getUIOpacity(node);
   tween(uiOpacity)
     .to(

@@ -1,9 +1,17 @@
-import { _decorator, CCFloat, Component, Node, tween, Vec3 } from 'cc';
-import { getContentSizeWithScale, setAnchorPoint } from '../utils/common';
-import { globalEvent, GlobalEvent } from '../global';
+import {
+  _decorator,
+  CCFloat,
+  Component,
+  Node,
+  tween,
+  UITransform,
+  Vec3,
+} from "cc";
+import { getContentSizeWithScale, setAnchorPoint } from "../utils/common";
+import { globalEvent, GlobalEvent } from "../global";
 const { ccclass, property } = _decorator;
 
-@ccclass('ProgressBase')
+@ccclass("ProgressBase")
 export class ProgressBase extends Component {
   @property(Node)
   progressBar: Node = null;
@@ -33,10 +41,11 @@ export class ProgressBase extends Component {
    */
   resetProgress(): void {
     if (this.progressBar) {
+      this.progressBar.active = true;
       setAnchorPoint(this.progressBar, 0, 1);
+      const size = this.progressBar.getComponent(UITransform).contentSize;
       this.progressBar.setPosition(
-        this.progressBar.position.x -
-          getContentSizeWithScale(this.progressBar).width / 2,
+        this.progressBar.position.x - size.width / 2,
         this.progressBar.position.y + this.offsetY,
         0
       );
@@ -50,7 +59,7 @@ export class ProgressBase extends Component {
    * @param rate 进度条增加的进度
    */
   addProgress(time: number = 0.3, rate: number = 0.1): Promise<number> {
-    return new Promise(resolve => {
+    return new Promise((resolve) => {
       // 修复浮点数精度问题
       this._rate = this.fixFloatPrecision(this._rate + rate);
 
@@ -70,7 +79,7 @@ export class ProgressBase extends Component {
           time,
           { scale: new Vec3(this._rate, this.progressBar.scale.y, 1) },
           {
-            easing: 'linear'
+            easing: "linear",
           }
         )
         .call(() => {
