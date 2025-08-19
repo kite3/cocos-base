@@ -5,13 +5,13 @@ import {
   Node,
   tween,
   UITransform,
-  Vec3,
-} from "cc";
-import { getContentSizeWithScale, setAnchorPoint } from "../utils/common";
-import { globalEvent, GlobalEvent } from "../global";
+  Vec3
+} from 'cc';
+import { getContentSizeWithScale, setAnchorPoint } from '../utils/common';
+import { globalEvent, GlobalEvent } from '../global';
 const { ccclass, property } = _decorator;
 
-@ccclass("ProgressBase")
+@ccclass('ProgressBase')
 export class ProgressBase extends Component {
   @property(Node)
   progressBar: Node = null;
@@ -27,13 +27,17 @@ export class ProgressBase extends Component {
     this.resetProgress();
   }
 
+  onDestroy() {
+  }
+
   /**
    * 修复浮点数精度问题
    * @param num 需要修复的数字
    * @param precision 精度位数，默认1位小数
    */
-  private fixFloatPrecision(num: number, precision: number = 1): number {
-    return Math.round(num * Math.pow(10, precision)) / Math.pow(10, precision);
+  private fixFloatPrecision(num1: number, num2: number): number {
+    const unit = Math.pow(10, 2);
+    return (num1 * unit + num2 * unit) / unit;
   }
 
   /**
@@ -59,9 +63,9 @@ export class ProgressBase extends Component {
    * @param rate 进度条增加的进度
    */
   addProgress(time: number = 0.3, rate: number = 0.1): Promise<number> {
-    return new Promise((resolve) => {
+    return new Promise(resolve => {
       // 修复浮点数精度问题
-      this._rate = this.fixFloatPrecision(this._rate + rate);
+      this._rate = this.fixFloatPrecision(this._rate, rate);
 
       if (this._rate > 1) {
         this._rate = 1;
@@ -79,7 +83,7 @@ export class ProgressBase extends Component {
           time,
           { scale: new Vec3(this._rate, this.progressBar.scale.y, 1) },
           {
-            easing: "linear",
+            easing: 'linear'
           }
         )
         .call(() => {
@@ -94,7 +98,7 @@ export class ProgressBase extends Component {
    * @param rate 进度值 (0-1)
    */
   setProgress(rate: number): void {
-    this._rate = this.fixFloatPrecision(Math.max(0, Math.min(1, rate)));
+    this._rate = Math.max(0, Math.min(1, rate));
     if (this.progressBar) {
       this.progressBar.setScale(this._rate, this.progressBar.scale.y, 1);
     }
