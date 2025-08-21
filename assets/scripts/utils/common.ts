@@ -16,7 +16,8 @@ import {
   sys,
   Component,
   Layout,
-  Vec2
+  Vec2,
+  Collider2D
 } from 'cc';
 
 declare const wx: any;
@@ -595,5 +596,30 @@ export function setAnchorPoint(
     if (uiTransform) {
       uiTransform.anchorPoint = new Vec2(anchorX, anchorY);
     }
+  }
+}
+
+export function addNodeToParent(node: Node, parent?: Node) {
+  if (!parent) {
+    parent = find('Canvas');
+  }
+  const localPos = parent
+    .getComponent(UITransform)
+    .convertToNodeSpaceAR(node.worldPosition);
+  node.setPosition(localPos);
+  parent.addChild(node);
+}
+
+export function disableCollider(node: Node) {
+  const collider = node.getComponent(Collider2D);
+  if (collider) {
+    collider.enabled = false;
+  }
+}
+
+export function enableCollider(node: Node) {
+  const collider = node.getComponent(Collider2D);
+  if (collider) {
+    collider.enabled = true;
   }
 }

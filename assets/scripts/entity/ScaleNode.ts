@@ -31,7 +31,7 @@ export class ScaleNode extends Component {
           })
           .to(this.scaleTime, { scale: new Vec3(minScale, minScale, 1) })
           .call(() => {
-            console.warn('call', this.node.name);
+            // console.warn('call', this.node.name);
           })
       )
       .start();
