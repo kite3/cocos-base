@@ -6,9 +6,9 @@ export class ScaleNode extends Component {
   private _tipTween: any = null;
 
   @property(CCFloat)
-  maxScaleRate: number = 1.2;
+  maxScaleRate: number = 1.15;
   @property(CCFloat)
-  scaleTime: number = 0.5;
+  scaleTime: number = 0.4;
 
   start() {
     this.startTextScaleAnim();
