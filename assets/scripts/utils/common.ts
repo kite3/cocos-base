@@ -623,3 +623,11 @@ export function enableCollider(node: Node) {
     collider.enabled = true;
   }
 }
+
+export function setAnimationSpeed(node: Node, speed: number) {
+  const animation = node.getComponent(Animation);
+  const state = animation.getState(animation.defaultClip.name);
+  if (state) {
+    state.speed = speed;
+  }
+}
