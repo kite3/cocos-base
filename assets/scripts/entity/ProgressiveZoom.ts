@@ -30,6 +30,8 @@ export class ProgressiveZoom extends Component {
 
   start() {
     disableLayout(this.node);
+    this.nodeList =
+      this.nodeList.length > 0 ? this.nodeList : this.node.children;
     hideNodes(this.nodeList);
     this.scheduleOnce(() => {
       progressiveZoom(
