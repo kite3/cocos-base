@@ -101,7 +101,7 @@ export function commonShowFinger(
   const centerY = localPos.y;
 
   // 右下角起始位置
-  const rightBottomX = centerX + fingerWidth / 2 + offset.x;
+  const rightBottomX = centerX + fingerWidth / 1.5 + offset.x;
   const rightBottomY = centerY - fingerHeight / 1.5 + offset.y;
 
   // 小幅度左上移动的目标位置
