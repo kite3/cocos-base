@@ -92,17 +92,17 @@ export function commonShowFinger(
     .convertToNodeSpaceAR(targetWorldPos);
 
   // 计算目标节点的边界
-  const targetUITransform = targetNode.getComponent(UITransform);
-  const targetWidth = targetUITransform.width;
-  const targetHeight = targetUITransform.height;
+  const size = getContentSizeWithScale(fingerNode);
+  const fingerWidth = size.width;
+  const fingerHeight = size.height;
 
   // 计算最终位置（包含偏移）
   const centerX = localPos.x;
   const centerY = localPos.y;
 
   // 右下角起始位置
-  const rightBottomX = centerX + targetWidth / 2 + offset.x;
-  const rightBottomY = centerY - targetHeight / 2 + offset.y;
+  const rightBottomX = centerX + fingerWidth / 2 + offset.x;
+  const rightBottomY = centerY - fingerHeight / 1.5 + offset.y;
 
   // 小幅度左上移动的目标位置
   const moveDistance = 30; // 移动距离，可以根据需要调整
@@ -310,12 +310,12 @@ export function getLiuhaiHeight() {
  * 更新节点widget组件的top位置,一般用于适配刘海屏
  * @param node
  */
-export function updateWidgetWithLiuhai(node: Node) {
+export function updateWidgetWithLiuhai(node: Node, offsetY: number = 0) {
   if (!node) return;
   const statusBarHeight = getLiuhaiHeight();
   const widget = node.getComponent(Widget);
   if (widget) {
-    widget.top = widget.top + statusBarHeight;
+    widget.top = widget.top + statusBarHeight + offsetY;
     widget.updateAlignment();
   }
 }
@@ -345,6 +345,7 @@ export function scaleWithBottomAlign(node: Node, scale: number | Vec3) {
 }
 
 export function fadeIn(node: Node, duration = 0.5) {
+  node.active = true;
   const uiOpacity = getUIOpacity(node);
   uiOpacity.opacity = 0;
   tween(uiOpacity)
@@ -368,7 +369,7 @@ export function scaleIn(
   return new Promise((resolve, reject) => {
     node.active = true;
     const originScale = node.scale.clone();
-    node.setScale(0, 0, 0);
+    node.setScale(0, 0, 1);
     tween(node)
       .to(duration, { scale: originScale }, { easing })
       .call(() => {
@@ -380,8 +381,8 @@ export function scaleIn(
 
 export function scaleInBounce(
   node: Node,
-  duration: number = 0.5,
-  overshoot: number = 1.15
+  duration: number = 0.4,
+  overshoot: number = 1.2
 ) {
   return new Promise((resolve, reject) => {
     node.active = true;
@@ -404,7 +405,6 @@ export function scaleInBounce(
   });
 }
 
-
 export const moveIn = (
   node: Node,
   startPos: Vec3,
@@ -413,10 +413,11 @@ export const moveIn = (
   easing: TweenEasing = 'sineInOut'
 ) => {
   return new Promise(resolve => {
-    node.active = true
+    node.active = true;
     node.setPosition(startPos);
 
-    tween(node) // 1秒钟从起始位置移动到终点
+    tween(node)
+      .to(duration, { position: endPos }, { easing })
       .call(() => {
         resolve('');
       })
@@ -429,9 +430,11 @@ export const moveIn = (
  * @param node
  * @param duration
  */
-export function fadeOut(node: Node, duration = 0.5) {
-  node.active = true
-  const uiOpacity = getUIOpacity(node);
+export function fadeOut(node: Node, duration = 0.4) {
+  let uiOpacity = getUIOpacity(node);
+  if (!uiOpacity) {
+    uiOpacity = node.addComponent(UIOpacity);
+  }
   tween(uiOpacity)
     .to(
       duration,
@@ -486,7 +489,7 @@ export function findParentWithComponent(node: Node, comp: string) {
  * @param condition 条件回调函数，返回true表示找到目标节点
  * @returns 找到的所有符合条件的节点数组
  */
-export function findChildNodesWithCondition(
+export function findChildNodes(
   parentNode: Node,
   condition: (node: Node) => boolean
 ): Node[] {
@@ -499,7 +502,7 @@ export function findChildNodesWithCondition(
 
   // 递归搜索所有子节点
   for (const child of parentNode.children) {
-    const childResults = findChildNodesWithCondition(child, condition);
+    const childResults = findChildNodes(child, condition);
     results.push(...childResults);
   }
 
@@ -543,6 +546,60 @@ export function playSpineInNode(node: Node) {
       return;
     }
     spine.setAnimation(0, aniName, false);
+  });
+}
+
+export function progressiveMove({
+  nodeList,
+  intervalDelay = 0.2,
+  animationDuration = 0.3,
+  offsetX = 0,
+  offsetY = 0,
+  easing = 'quadOut',
+  isPlayAudio = true
+}: {
+  nodeList: Node[];
+  intervalDelay: number;
+  animationDuration: number;
+  offsetX: number;
+  offsetY: number;
+  easing?: TweenEasing;
+  isPlayAudio?: boolean;
+}) {
+  return new Promise(resolve => {
+    if (nodeList.length === 0) {
+      resolve('');
+      return;
+    }
+    hideNodes(nodeList);
+    let completedCount = 0;
+    const totalNodeLength = nodeList.length;
+
+    nodeList.forEach((node, index) => {
+      const delay = index * intervalDelay;
+      setTimeout(() => {
+        const startPos = new Vec3(
+          node.position.x + offsetX,
+          node.position.y + offsetY,
+          node.position.z
+        );
+        if (isPlayAudio) {
+          // playOneShot(AUDIO_ENUM.弹出);
+        }
+        moveIn(
+          node,
+          startPos,
+          node.position.clone(),
+          animationDuration,
+          easing
+        ).then(() => {
+          completedCount++;
+          if (completedCount === totalNodeLength) {
+            resolve('');
+          }
+        });
+      }, delay * 1000);
+    });
   });
 }
 
