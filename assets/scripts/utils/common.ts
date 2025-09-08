@@ -312,14 +312,15 @@ export function getLiuhaiHeight() {
  */
 export function updateWidgetWithLiuhai(node: Node, offsetY: number = 0) {
   if (!node) return;
-  const statusBarHeight = getLiuhaiHeight();
   const widget = node.getComponent(Widget);
   if (widget) {
+    const statusBarHeight = getLiuhaiHeight();
     widget.top = widget.top + statusBarHeight + offsetY;
     widget.updateAlignment();
+  } else {
+    console.warn('节点没有widget，刘海对齐失败')
   }
 }
-
 /**
  * 缩放节点并保持底部对齐（适用于中心缩放的节点）
  * @param node 要缩放的节点
