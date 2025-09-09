@@ -17,13 +17,15 @@ import {
   Component,
   Layout,
   Vec2,
-  Collider2D
-} from 'cc';
+  Collider2D,
+  Button,
+  EventHandler,
+} from "cc";
 
 declare const wx: any;
 
 export function sleep(seconds: number): Promise<void> {
-  return new Promise(resolve => {
+  return new Promise((resolve) => {
     setTimeout(resolve, seconds * 1000);
   });
 }
@@ -33,30 +35,30 @@ export function handleGameOver() {
     wx?.notifyMiniProgramPlayableStatus?.({
       isEnd: true,
       success: () => {
-        console.log('[wx] notifyMiniProgramPlayableStatus成功回调被触发');
+        console.log("[wx] notifyMiniProgramPlayableStatus成功回调被触发");
       },
-      fail: err => {
-        console.log('[wx] notifyMiniProgramPlayableStatus失败回调被触发:', err);
-      }
+      fail: (err) => {
+        console.log("[wx] notifyMiniProgramPlayableStatus失败回调被触发:", err);
+      },
     });
   } catch (err) {
-    console.log('[wx] notifyMiniProgramPlayableStatus失败:', err);
+    console.log("[wx] notifyMiniProgramPlayableStatus失败:", err);
   }
-  console.warn('[game] over');
+  console.warn("[game] over");
 }
 
 export function isWeb() {
-  return typeof window !== 'undefined' && !window['wx'];
+  return typeof window !== "undefined" && !window["wx"];
 }
 
 export function isWebDevelopment() {
-  const isCocosEditor = location.href.indexOf('packages://scene/static') > -1;
-  console.log('isCocosEditor', isCocosEditor);
-  return isWeb() && (location.href.indexOf('localhost') > -1 || isCocosEditor);
+  const isCocosEditor = location.href.indexOf("packages://scene/static") > -1;
+  console.log("isCocosEditor", isCocosEditor);
+  return isWeb() && (location.href.indexOf("localhost") > -1 || isCocosEditor);
 }
 
 export function isDebugMode() {
-  return isWeb() && location.href.indexOf('debug=1') > -1;
+  return isWeb() && location.href.indexOf("debug=1") > -1;
 }
 
 export const getContentSizeWithScale = (node: Node) => {
@@ -81,7 +83,7 @@ export function commonShowFinger(
   prefab: Prefab,
   targetNode: Node,
   offset: { x: number; y: number } = { x: 0, y: 0 },
-  parentNode: Node = find('Canvas')
+  parentNode: Node = find("Canvas")
 ) {
   const parent = parentNode;
   const fingerNode = instantiate(prefab);
@@ -119,14 +121,14 @@ export function commonShowFinger(
       0.4,
       { position: new Vec3(leftTopX, leftTopY, 0) },
       {
-        easing: 'sineInOut'
+        easing: "sineInOut",
       }
     )
     .to(
       0.4,
       { position: new Vec3(rightBottomX, rightBottomY, 0) },
       {
-        easing: 'sineInOut'
+        easing: "sineInOut",
       }
     )
     .union()
@@ -155,7 +157,7 @@ export function getUIOpacity(node: Node): UIOpacity {
 }
 
 export function hideNodes(nodes: Node[]) {
-  nodes.forEach(node => {
+  nodes.forEach((node) => {
     if (node) {
       node.active = false;
     }
@@ -170,7 +172,7 @@ export function hideNodes(nodes: Node[]) {
 export function getSpineAnimationNames(skeleton: sp.Skeleton): string[] {
   const enumMap = skeleton.skeletonData.getAnimsEnum?.();
   return enumMap
-    ? Object.keys(enumMap).filter(v => v.indexOf('None') === -1)
+    ? Object.keys(enumMap).filter((v) => v.indexOf("None") === -1)
     : [];
 }
 
@@ -182,7 +184,7 @@ export function addEffectWithTargetNode({
   targetNode,
   offset = { x: 0, y: 0 },
   aniOpts = { loopNum: 1, scaleDirection: 1 },
-  onComplete
+  onComplete,
 }: {
   prefab: Prefab;
   targetNode: Node;
@@ -193,10 +195,10 @@ export function addEffectWithTargetNode({
   const node = instantiate(prefab);
 
   // 追加到canvas节点比较稳妥,添加到其他节点可能会受到layout等组件影响
-  const localPos = find('Canvas/main/特效容器')
+  const localPos = find("Canvas/main/特效容器")
     .getComponent(UITransform)
     .convertToNodeSpaceAR(targetNode.worldPosition);
-  find('Canvas/main/特效容器').addChild(node);
+  find("Canvas/main/特效容器").addChild(node);
 
   node.setPosition(localPos.x + offset.x, localPos.y + offset.y, localPos.z);
   node.setScale(
@@ -212,7 +214,7 @@ export function addEffectWithTargetNode({
   if (spine) {
     const defaultAnimation = getSpineAnimationNames(spine)[0];
     if (!defaultAnimation) {
-      console.error('没有找到spine动画');
+      console.error("没有找到spine动画");
       return;
     }
     if (!isLoop) {
@@ -248,7 +250,7 @@ export function addEffectWithTargetNode({
     animation,
     destoryAnimFn: () => {
       node.destroy();
-    }
+    },
   };
 }
 
@@ -257,7 +259,7 @@ export function addEffectWithTargetNode({
  */
 export function addEffectWithWorldPosition({
   prefab,
-  worldPosition
+  worldPosition,
 }: {
   prefab: Prefab;
   worldPosition: Vec3;
@@ -266,8 +268,8 @@ export function addEffectWithWorldPosition({
   const node = instantiate(prefab);
 
   // 追加到canvas节点比较稳妥,添加到其他节点可能会受到layout等组件英雄
-  node.parent = find('Canvas');
-  const localPos = find('Canvas')
+  node.parent = find("Canvas");
+  const localPos = find("Canvas")
     .getComponent(UITransform)
     .convertToNodeSpaceAR(worldPosition);
 
@@ -286,22 +288,22 @@ export function addEffectWithWorldPosition({
  */
 export function getLiuhaiHeight() {
   const visibleSize = view.getVisibleSize();
-  console.log('visibleSize', visibleSize);
+  console.log("visibleSize", visibleSize);
 
   const safeArea = sys.getSafeAreaRect();
-  console.log('safeArea', safeArea);
+  console.log("safeArea", safeArea);
 
   const liuhaiHeight = visibleSize.height - safeArea.height - safeArea.y;
-  console.log('刘海高度', liuhaiHeight);
+  console.log("刘海高度", liuhaiHeight);
 
   const h = liuhaiHeight / (720 / 375);
-  console.log('缩放比换算后的刘海高度', h);
+  console.log("缩放比换算后的刘海高度", h);
 
   let ph = h > 30 ? h + 20 : 0;
-  console.log('修正后的刘海高度1', ph);
+  console.log("修正后的刘海高度1", ph);
 
   ph = ph > 80 ? 80 : ph;
-  console.log('修正后的刘海高度2', ph);
+  console.log("修正后的刘海高度2", ph);
 
   return ph;
 }
@@ -318,7 +320,7 @@ export function updateWidgetWithLiuhai(node: Node, offsetY: number = 0) {
     widget.top = widget.top + statusBarHeight + offsetY;
     widget.updateAlignment();
   } else {
-    console.warn('节点没有widget，刘海对齐失败')
+    console.warn("节点没有widget，刘海对齐失败");
   }
 }
 /**
@@ -334,7 +336,7 @@ export function scaleWithBottomAlign(node: Node, scale: number | Vec3) {
 
   const oldScale = node.scale;
   const newScale =
-    typeof scale === 'number' ? new Vec3(scale, scale, scale) : scale;
+    typeof scale === "number" ? new Vec3(scale, scale, scale) : scale;
 
   const deltaScaleY = newScale.y - oldScale.y;
   // 计算缩放前后的偏移量
@@ -353,10 +355,10 @@ export function fadeIn(node: Node, duration = 0.5) {
     .to(
       duration,
       {
-        opacity: 255
+        opacity: 255,
       },
       {
-        easing: 'quadOut'
+        easing: "quadOut",
       }
     )
     .start();
@@ -365,7 +367,7 @@ export function fadeIn(node: Node, duration = 0.5) {
 export function scaleIn(
   node: Node,
   duration: number = 0.4,
-  easing: TweenEasing = 'quadOut'
+  easing: TweenEasing = "quadOut"
 ) {
   return new Promise((resolve, reject) => {
     node.active = true;
@@ -374,7 +376,7 @@ export function scaleIn(
     tween(node)
       .to(duration, { scale: originScale }, { easing })
       .call(() => {
-        resolve('');
+        resolve("");
       })
       .start();
   });
@@ -397,10 +399,10 @@ export function scaleInBounce(
     node.setScale(0, 0, 0);
 
     tween(node)
-      .to(duration * 0.6, { scale: overshootScale }, { easing: 'quadOut' })
-      .to(duration * 0.4, { scale: originScale }, { easing: 'backOut' })
+      .to(duration * 0.6, { scale: overshootScale }, { easing: "quadOut" })
+      .to(duration * 0.4, { scale: originScale }, { easing: "backOut" })
       .call(() => {
-        resolve('');
+        resolve("");
       })
       .start();
   });
@@ -411,16 +413,16 @@ export const moveIn = (
   startPos: Vec3,
   endPos: Vec3,
   duration = 0.3,
-  easing: TweenEasing = 'sineInOut'
+  easing: TweenEasing = "sineInOut"
 ) => {
-  return new Promise(resolve => {
+  return new Promise((resolve) => {
     node.active = true;
     node.setPosition(startPos);
 
     tween(node)
       .to(duration, { position: endPos }, { easing })
       .call(() => {
-        resolve('');
+        resolve("");
       })
       .start();
   });
@@ -440,10 +442,10 @@ export function fadeOut(node: Node, duration = 0.4) {
     .to(
       duration,
       {
-        opacity: 0
+        opacity: 0,
       },
       {
-        easing: 'quadOut'
+        easing: "quadOut",
       }
     )
     .call(() => {
@@ -453,7 +455,7 @@ export function fadeOut(node: Node, duration = 0.4) {
 }
 
 export function findHeroCon() {
-  return find('Canvas/main/player');
+  return find("Canvas/main/player");
 }
 
 export function getPrevNode(node: Node) {
@@ -526,7 +528,7 @@ export function playAnimationInNode(node: Node) {
     const animation = node.getComponent(Animation);
     animation.on(Animation.EventType.FINISHED, () => {
       node.active = false;
-      resolve('');
+      resolve("");
     });
     animation.play();
   });
@@ -539,11 +541,11 @@ export function playSpineInNode(node: Node) {
     spine.setCompleteListener(() => {
       spine.setCompleteListener(null);
       node.active = false;
-      resolve('');
+      resolve("");
     });
     const aniName = getSpineAnimationNames(spine)[0];
     if (!aniName) {
-      console.error('没有找到spine动画');
+      console.error("没有找到spine动画");
       return;
     }
     spine.setAnimation(0, aniName, false);
@@ -556,8 +558,8 @@ export function progressiveMove({
   animationDuration = 0.3,
   offsetX = 0,
   offsetY = 0,
-  easing = 'quadOut',
-  isPlayAudio = true
+  easing = "quadOut",
+  isPlayAudio = true,
 }: {
   nodeList: Node[];
   intervalDelay: number;
@@ -567,9 +569,9 @@ export function progressiveMove({
   easing?: TweenEasing;
   isPlayAudio?: boolean;
 }) {
-  return new Promise(resolve => {
+  return new Promise((resolve) => {
     if (nodeList.length === 0) {
-      resolve('');
+      resolve("");
       return;
     }
     hideNodes(nodeList);
@@ -596,7 +598,7 @@ export function progressiveMove({
         ).then(() => {
           completedCount++;
           if (completedCount === totalNodeLength) {
-            resolve('');
+            resolve("");
           }
         });
       }, delay * 1000);
@@ -616,9 +618,9 @@ export function progressiveZoom(
   intervalDelay: number = 0.2,
   animationDuration: number = 0.3
 ) {
-  return new Promise(resolve => {
+  return new Promise((resolve) => {
     if (nodeList.length === 0) {
-      resolve('');
+      resolve("");
       return;
     }
     hideNodes(nodeList);
@@ -631,7 +633,7 @@ export function progressiveZoom(
         scaleIn(node, animationDuration).then(() => {
           completedCount++;
           if (completedCount === totalNodeLength) {
-            resolve('');
+            resolve("");
           }
         });
       }, delay * 1000);
@@ -659,7 +661,7 @@ export function setAnchorPoint(
 
 export function addNodeToParent(node: Node, parent?: Node) {
   if (!parent) {
-    parent = find('Canvas');
+    parent = find("Canvas");
   }
   const localPos = parent
     .getComponent(UITransform)
@@ -688,4 +690,54 @@ export function setAnimationSpeed(node: Node, speed: number) {
   if (state) {
     state.speed = speed;
   }
+}
+
+/**
+ * 给节点绑定Button组件并设置点击事件
+ * @param options 配置选项
+ * @param options.node 要绑定Button的节点
+ * @param options.targetNode 事件处理代码组件所属的节点
+ * @param options.component 脚本组件
+ * @param options.handler 处理函数
+ * @param options.customEventData 自定义事件数据
+ * 调用方式：
+ * bindButtonWithHandler({
+      node: this.skillTreeItemList[0].itemNode,
+      targetNode: this.node,
+      component: this,
+      handler: this.handleStart
+    });
+ */
+export function bindButtonWithHandler({
+  node,
+  targetNode,
+  component,
+  handler,
+  customEventData,
+}: {
+  node: Node;
+  targetNode: Node;
+  component: Component;
+  handler: Function;
+  customEventData?: string;
+}) {
+  if (!node) {
+    console.warn("[bindButtonWithHandler] 节点不存在");
+    return;
+  }
+
+  let button = node.getComponent(Button);
+  if (!button) {
+    button = node.addComponent(Button);
+  }
+
+  const clickEventHandler = new EventHandler();
+  clickEventHandler.target = targetNode;
+  clickEventHandler.component = component.constructor.name;
+  clickEventHandler.handler = handler.name;
+  if (customEventData) {
+    clickEventHandler.customEventData = customEventData;
+  }
+
+  button.clickEvents.push(clickEventHandler);
 }
