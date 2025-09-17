@@ -714,12 +714,17 @@ export function bindButtonWithHandler({
   component,
   handler,
   customEventData,
+  scaleOptions,
 }: {
   node: Node;
   targetNode: Node;
   component: Component;
   handler: Function;
   customEventData?: string;
+  scaleOptions?: {
+    scale: number;
+    duration: number;
+  };
 }) {
   if (!node) {
     console.warn("[bindButtonWithHandler] 节点不存在");
@@ -738,6 +743,9 @@ export function bindButtonWithHandler({
   if (customEventData) {
     clickEventHandler.customEventData = customEventData;
   }
+  button.transition = Button.Transition.SCALE;
+  button.zoomScale = scaleOptions?.scale ?? 1.2;
+  button.duration = scaleOptions?.duration ?? 0.1;
 
   button.clickEvents.push(clickEventHandler);
 }
