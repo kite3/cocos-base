@@ -20,6 +20,7 @@ import {
   Collider2D,
   Button,
   EventHandler,
+  AnimationClip,
 } from "cc";
 
 declare const wx: any;
@@ -522,10 +523,17 @@ export function shuffleArray(array: any[]) {
   }
 }
 
-export function playAnimationInNode(node: Node) {
+export function playAnimationInNode(node: Node, isDebug: boolean = false) {
   return new Promise((resolve, reject) => {
     node.active = true;
     const animation = node.getComponent(Animation);
+    if (isDebug) {
+      // 循环播放
+      animation.defaultClip.wrapMode = AnimationClip.WrapMode.Loop;
+      animation.play();
+      resolve("");
+      return;
+    }
     animation.on(Animation.EventType.FINISHED, () => {
       node.active = false;
       resolve("");
@@ -534,20 +542,54 @@ export function playAnimationInNode(node: Node) {
   });
 }
 
-export function playSpineInNode(node: Node) {
+export function playSpineInNode(node: Node, aniName, isDebug: boolean = false) {
   return new Promise((resolve, reject) => {
     node.active = true;
     const spine = node.getComponent(sp.Skeleton);
+    if (isDebug) {
+      spine.setAnimation(0, aniName, true);
+      resolve("");
+      return;
+    }
     spine.setCompleteListener(() => {
       spine.setCompleteListener(null);
       node.active = false;
       resolve("");
     });
-    const aniName = getSpineAnimationNames(spine)[0];
-    if (!aniName) {
-      console.error("没有找到spine动画");
-      return;
-    }
+    spine.setAnimation(0, aniName, false);
+  });
+}
+
+export function playSpineInNodeWithEvent({
+  node,
+  aniName,
+  eventCallback,
+  completeCallback,
+  autoDisable = true,
+}: {
+  node: Node;
+  aniName: string;
+  eventCallback?: (eventName: string) => void;
+  completeCallback?: () => void;
+  autoDisable?: boolean;
+}) {
+  return new Promise((resolve, reject) => {
+    node.active = true;
+    const spine = node.getComponent(sp.Skeleton);
+
+    spine.setEventListener((_entry: any, event: any) => {
+      spine.setEventListener(null);
+      eventCallback?.(event.data.name);
+    });
+
+    spine.setCompleteListener(() => {
+      spine.setCompleteListener(null);
+      completeCallback?.();
+      if (autoDisable) {
+        node.active = false;
+      }
+      resolve("");
+    });
     spine.setAnimation(0, aniName, false);
   });
 }
