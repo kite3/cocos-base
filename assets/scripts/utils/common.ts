@@ -896,3 +896,70 @@ export function bindButtonWithHandler({
 
   button.clickEvents.push(clickEventHandler);
 }
+
+/**
+ * 钟摆式摇晃效果 - 围绕锚点进行旋转式摇晃
+ * @param node 要摇晃的节点
+ * @param shakeAngle 摇晃角度（度），默认15度
+ * @param shakeDuration 单次摇晃时长（秒），默认0.2秒
+ * @param shakeCount 摇晃次数（左右摇晃的总次数），默认2次
+ * @param easing 缓动类型，默认'sineInOut'
+ * @returns Promise，摇晃完成时resolve
+ */
+export function shakeRotation(
+  node: Node,
+  shakeAngle: number = 15,
+  shakeDuration: number = 0.2,
+  shakeCount: number = 2,
+  easing: TweenEasing = 'sineInOut'
+): Promise<void> {
+  return new Promise(resolve => {
+    if (!node || !node.isValid) {
+      console.warn('[shakeRotation] 节点无效');
+      resolve();
+      return;
+    }
+
+    // 记录原始旋转角度
+    const originalRotation = node.angle;
+
+    // 创建扇形摇晃动画序列
+    let shakeSequence = tween(node);
+
+    for (let i = 0; i < shakeCount; i++) {
+      // 向右旋转摇晃
+      shakeSequence = shakeSequence.to(
+        shakeDuration,
+        {
+          angle: originalRotation + shakeAngle
+        },
+        { easing }
+      );
+
+      // 向左旋转摇晃
+      shakeSequence = shakeSequence.to(
+        shakeDuration,
+        {
+          angle: originalRotation - shakeAngle
+        },
+        { easing }
+      );
+    }
+
+    // 最后回到原始角度
+    shakeSequence = shakeSequence
+      .to(
+        shakeDuration,
+        {
+          angle: originalRotation
+        },
+        { easing }
+      )
+      .call(() => {
+        resolve();
+      });
+
+    // 开始摇晃动画
+    shakeSequence.start();
+  });
+}
