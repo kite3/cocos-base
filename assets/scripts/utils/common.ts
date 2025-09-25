@@ -22,6 +22,8 @@ import {
   EventHandler,
   AnimationClip,
 } from "cc";
+import { playOneShot } from "../baseManager/AudioManager";
+import { AUDIO_ENUM } from "../global";
 
 declare const wx: any;
 
@@ -165,6 +167,14 @@ export function hideNodes(nodes: Node[]) {
   });
 }
 
+export function showNodes(nodes: Node[]) {
+  nodes.forEach((node) => {
+    if (node) {
+      node.active = true;
+    }
+  });
+}
+
 /**
  * 获取spine动画名称
  * @param skeleton
@@ -175,6 +185,265 @@ export function getSpineAnimationNames(skeleton: sp.Skeleton): string[] {
   return enumMap
     ? Object.keys(enumMap).filter((v) => v.indexOf("None") === -1)
     : [];
+}
+
+function createAnimationController({
+  animationNode,
+  loopNum = 1,
+  onInterval,
+  onComplete,
+  autoDisable = true,
+}: {
+  animationNode: Node;
+  loopNum?: number;
+  onInterval?: (playCount: number) => void;
+  onComplete?: () => void;
+  autoDisable?: boolean;
+}) {
+  const animation = animationNode.getComponent(Animation);
+  if (!animation) {
+    console.error("没有找到animation组件");
+    return;
+  }
+
+  // 设置动画循环模式，避免受到cocos动画编辑器的影响
+  if (loopNum !== -1) {
+    const state = animation.getState(animation.defaultClip.name);
+    state.wrapMode = AnimationClip.WrapMode.Normal;
+    state.repeatCount = 1;
+  }
+
+  let playCount = 0;
+  const onFinished = () => {
+    playCount++;
+    if (playCount >= loopNum && loopNum !== -1) {
+      if (autoDisable) {
+        animationNode.destroy();
+      }
+      onComplete?.();
+    } else {
+      animation.play();
+      onInterval?.(playCount);
+    }
+  };
+  animation.on(Animation.EventType.FINISHED, onFinished);
+  animation.play();
+
+  return {
+    aniObject: animation,
+    destoryAniFn: () => {
+      animationNode.destroy();
+    },
+  };
+}
+
+/**
+ * 在指定节点上播放序列帧动画
+ */
+export function playAnimationInNode({
+  targetNode,
+  loopNum = 1,
+  onInterval,
+  onComplete,
+  autoDisable = true,
+}: {
+  targetNode: Node;
+  loopNum?: number;
+  onInterval?: (playCount: number) => void;
+  onComplete?: () => void;
+  autoDisable?: boolean;
+}) {
+  targetNode.active = true;
+  return createAnimationController({
+    animationNode: targetNode,
+    loopNum,
+    onInterval,
+    onComplete,
+    autoDisable,
+  });
+}
+
+/**
+ * 添加序列帧动画到指定节点下
+ */
+export function addAnimationToNode({
+  prefab,
+  targetNode,
+  offset = { x: 0, y: 0 },
+  loopNum = 1,
+  scaleDirection = 1,
+  onInterval,
+  onComplete,
+}: {
+  prefab: Prefab;
+  targetNode: Node;
+  offset?: { x: number; y: number };
+  loopNum?: number;
+  scaleDirection?: number;
+  onInterval?: (playCount: number) => void;
+  onComplete?: () => void;
+}) {
+  // 去除targetNode的layout组件
+  const layout = targetNode.getComponent(Layout);
+  if (layout) {
+    layout.enabled = false;
+  }
+
+  const node = instantiate(prefab);
+  targetNode.addChild(node);
+
+  // 设置位置和缩放（含朝向）
+  node.setPosition(offset.x, offset.y, 0);
+  node.setScale(node.scale.x * scaleDirection, node.scale.y, node.scale.z);
+
+  return createAnimationController({
+    animationNode: node,
+    loopNum,
+    onInterval,
+    onComplete,
+    autoDisable: true,
+  });
+}
+
+function createSpineController({
+  spineNode,
+  aniName,
+  loopNum = 1,
+  onEvent,
+  onInterval,
+  onComplete,
+  autoDestroy = true,
+}: {
+  spineNode: Node;
+  aniName?: string;
+  loopNum?: number;
+  onEvent?: (eventName: string) => void;
+  onInterval?: (playCount: number) => void;
+  onComplete?: () => void;
+  autoDestroy?: boolean;
+}) {
+  const spine = spineNode.getComponent(sp.Skeleton);
+  if (!spine) {
+    console.error("没有找到spine组件");
+    return;
+  }
+
+  // 获取动画名称
+  const defaultAnimation = getSpineAnimationNames(spine)[0];
+  const playAniName = aniName ?? defaultAnimation;
+
+  // 设置事件监听器
+  if (onEvent) {
+    spine.setEventListener((_entry: any, event: any) => {
+      spine.setEventListener(null);
+      onEvent(event.data.name);
+    });
+  }
+
+  let playCount = 0;
+  const onFinished = () => {
+    playCount++;
+    if (playCount >= loopNum && loopNum !== -1) {
+      spine.setCompleteListener(null);
+      if (autoDestroy) {
+        spineNode.destroy();
+      }
+      onComplete?.();
+    } else {
+      spine.setAnimation(0, playAniName, false);
+      onInterval?.(playCount);
+    }
+  };
+
+  spine.setCompleteListener(onFinished);
+  spine.setAnimation(0, playAniName, false);
+
+  return {
+    aniObject: spine,
+    destoryAniFn: () => {
+      spineNode.destroy();
+    },
+  };
+}
+
+/**
+ * 在指定节点上播放Spine动画
+ */
+export function playSpineInNode({
+  node,
+  aniName,
+  onEvent,
+  onInterval,
+  onComplete,
+  autoDisable = true,
+  loopNum = 1,
+}: {
+  node: Node;
+  aniName: string;
+  onEvent?: (eventName: string) => void;
+  onInterval?: (playCount: number) => void;
+  onComplete?: () => void;
+  autoDisable?: boolean;
+  loopNum?: number;
+}) {
+  node.active = true;
+  return createSpineController({
+    spineNode: node,
+    aniName,
+    loopNum,
+    onEvent,
+    onInterval,
+    onComplete,
+    autoDestroy: true,
+  });
+}
+
+/**
+ * 添加Spine动画到指定节点下
+ */
+export function addSpineToNode({
+  prefab,
+  targetNode,
+  aniName,
+  offset = { x: 0, y: 0 },
+  loopNum = -1,
+  scaleDirection = 1,
+  onEvent,
+  onInterval,
+  onComplete,
+}: {
+  prefab: Prefab;
+  targetNode: Node;
+  aniName?: string;
+  offset?: { x: number; y: number };
+  loopNum?: number;
+  scaleDirection?: number;
+  onEvent?: (eventName: string) => void;
+  onInterval?: (playCount: number) => void;
+  onComplete?: () => void;
+}) {
+  // 去除targetNode的layout组件
+  const layout = targetNode.getComponent(Layout);
+  if (layout) {
+    layout.enabled = false;
+  }
+
+  const node = instantiate(prefab);
+  targetNode.addChild(node);
+
+  // 设置位置和朝向
+  node.setPosition(offset.x, offset.y, 0);
+  node.setScale(node.scale.x * scaleDirection, node.scale.y, 1);
+
+  return createSpineController({
+    spineNode: node,
+    aniName,
+    loopNum,
+    onEvent,
+    onInterval,
+    onComplete,
+    autoDestroy: true,
+  });
 }
 
 /**
@@ -215,9 +484,10 @@ export function updateWidgetWithLiuhai(node: Node, offsetY: number = 0) {
     widget.top = widget.top + statusBarHeight + offsetY;
     widget.updateAlignment();
   } else {
-    console.warn("节点没有widget，刘海对齐失败");
+    console.error("[updateWidgetWithLiuhai]没有找到widget组件");
   }
 }
+
 /**
  * 缩放节点并保持底部对齐（适用于中心缩放的节点）
  * @param node 要缩放的节点
@@ -242,7 +512,7 @@ export function scaleWithBottomAlign(node: Node, scale: number | Vec3) {
   node.setPosition(node.position.x, node.position.y + offsetY, node.position.z);
 }
 
-export function fadeIn(node: Node, duration = 0.5) {
+export function fadeIn(node: Node, duration = 0.4) {
   node.active = true;
   const uiOpacity = getUIOpacity(node);
   uiOpacity.opacity = 0;
@@ -256,6 +526,28 @@ export function fadeIn(node: Node, duration = 0.5) {
         easing: "quadOut",
       }
     )
+    .start();
+}
+
+export function fadeOut(node: Node, duration = 0.4, isDestroy = true) {
+  const uiOpacity = getUIOpacity(node);
+  tween(uiOpacity)
+    .to(
+      duration,
+      {
+        opacity: 0,
+      },
+      {
+        easing: "quadOut",
+      }
+    )
+    .call(() => {
+      if (isDestroy) {
+        node.destroy();
+      } else {
+        node.active = false;
+      }
+    })
     .start();
 }
 
@@ -303,7 +595,7 @@ export function scaleInBounce(
   });
 }
 
-export const moveIn = (
+export const movePointAToPointB = (
   node: Node,
   startPos: Vec3,
   endPos: Vec3,
@@ -323,31 +615,25 @@ export const moveIn = (
   });
 };
 
-/**
- * 淡出节点
- * @param node
- * @param duration
- */
-export function fadeOut(node: Node, duration = 0.4) {
-  let uiOpacity = getUIOpacity(node);
-  if (!uiOpacity) {
-    uiOpacity = node.addComponent(UIOpacity);
-  }
-  tween(uiOpacity)
-    .to(
-      duration,
-      {
-        opacity: 0,
-      },
-      {
-        easing: "quadOut",
-      }
-    )
-    .call(() => {
-      node.destroy();
-    })
-    .start();
-}
+export const moveNodeAToNodeB = (
+  startNode: Node,
+  endNode: Node,
+  duration = 0.5,
+  easing: TweenEasing = "sineInOut"
+) => {
+  return new Promise((resolve) => {
+    startNode.active = true;
+    const endPos = startNode.parent
+      .getComponent(UITransform)
+      .convertToNodeSpaceAR(endNode.worldPosition);
+    tween(startNode)
+      .to(duration, { position: endPos }, { easing })
+      .call(() => {
+        resolve("");
+      })
+      .start();
+  });
+};
 
 export function getPrevNode(node: Node) {
   const currentIndex = node.parent.children.indexOf(node);
@@ -413,216 +699,6 @@ export function shuffleArray(array: any[]) {
   }
 }
 
-/**
- * 添加序列帧动画到指定位置
- * @param prefab 动画预制体
- * @param targetNode 目标节点
- * @param offset 偏移
- * @param loopNum 循环次数：-1为无限循环，1为播放一次，2为播放两次，以此类推
- * @param scaleDirection 缩放方向
- * @param onComplete 完成回调
- */
-export function addAnimationToNode({
-  prefab,
-  targetNode,
-  offset = { x: 0, y: 0 },
-  loopNum = 1,
-  scaleDirection = 1,
-  onComplete,
-}: {
-  prefab: Prefab;
-  targetNode: Node;
-  offset?: { x: number; y: number };
-  loopNum?: number;
-  scaleDirection?: number;
-  onComplete?: () => void;
-}) {
-  // 去除targetNode的layout组件
-  const layout = targetNode.getComponent(Layout);
-  if (layout) {
-    layout.enabled = false;
-  }
-
-  const node = instantiate(prefab);
-  targetNode.addChild(node);
-
-  // 设置位置和缩放（含朝向）
-  node.setPosition(offset.x, offset.y, 0);
-  node.setScale(node.scale.x * scaleDirection, node.scale.y, node.scale.z);
-
-  const animation = node.getComponent(Animation);
-  if (!animation) {
-    console.error("没有找到animation组件");
-    return;
-  }
-
-  // 设置动画循环模式，避免受到cocos动画编辑器的影响
-  if (loopNum !== -1) {
-    const state = animation.getState(animation.defaultClip.name);
-    state.wrapMode = AnimationClip.WrapMode.Normal;
-    state.repeatCount = 1;
-  }
-
-  let playCount = 0;
-  const onFinished = () => {
-    playCount++;
-    if (playCount >= loopNum && loopNum !== -1) {
-      node.destroy();
-      onComplete?.();
-    } else {
-      animation.play();
-    }
-  };
-  animation.on(Animation.EventType.FINISHED, onFinished);
-  animation.play();
-
-  return {
-    aniObject: animation,
-    destoryAniFn: () => {
-      node.destroy();
-    },
-  };
-}
-
-/**
- * 添加spine动画到指定位置
- * @param prefab 动画预制体
- * @param targetNode 目标节点
- * @param offset 偏移
- * @param loopNum 循环次数：-1为无限循环，1为播放一次，2为播放两次，以此类推
- * @param scaleDirection 缩放方向
- * @param onComplete 完成回调
- */
-export function addSpineToNode({
-  prefab,
-  targetNode,
-  aniName,
-  offset = { x: 0, y: 0 },
-  loopNum = -1,
-  scaleDirection = 1,
-  onComplete,
-}: {
-  prefab: Prefab;
-  targetNode: Node;
-  aniName?: string;
-  offset?: { x: number; y: number };
-  loopNum?: number;
-  scaleDirection?: number;
-  onComplete?: () => void;
-}) {
-  // 去除targetNode的layout组件
-  const layout = targetNode.getComponent(Layout);
-  if (layout) {
-    layout.enabled = false;
-  }
-
-  const node = instantiate(prefab);
-  targetNode.addChild(node);
-
-  // 设置位置和朝向
-  node.setPosition(offset.x, offset.y, 0);
-  node.setScale(node.scale.x * scaleDirection, node.scale.y, 1);
-
-  const spine = node.getComponent(sp.Skeleton);
-  if (!spine) {
-    console.error("没有找到spine组件");
-    return;
-  }
-
-  const defaultAnimation = getSpineAnimationNames(spine)[0];
-  const playAniName = aniName ?? defaultAnimation;
-
-  let playCount = 0;
-  spine.setCompleteListener(() => {
-    playCount++;
-    if (playCount >= loopNum && loopNum !== -1) {
-      node.destroy();
-      onComplete?.();
-    } else {
-      spine.setAnimation(0, playAniName, false);
-    }
-  });
-  spine.setAnimation(0, playAniName, false);
-
-  return {
-    aniObject: spine,
-    destoryAniFn: () => {
-      node.destroy();
-    },
-  };
-}
-
-export function playAnimationInNode(node: Node, isDebug: boolean = false) {
-  return new Promise((resolve, reject) => {
-    node.active = true;
-    const animation = node.getComponent(Animation);
-    if (isDebug) {
-      // 循环播放
-      animation.defaultClip.wrapMode = AnimationClip.WrapMode.Loop;
-      animation.play();
-      resolve("");
-      return;
-    }
-    animation.on(Animation.EventType.FINISHED, () => {
-      node.active = false;
-      resolve("");
-    });
-    animation.play();
-  });
-}
-
-export function playSpineInNode(node: Node, aniName, isDebug: boolean = false) {
-  return new Promise((resolve, reject) => {
-    node.active = true;
-    const spine = node.getComponent(sp.Skeleton);
-    if (isDebug) {
-      spine.setAnimation(0, aniName, true);
-      resolve("");
-      return;
-    }
-    spine.setCompleteListener(() => {
-      spine.setCompleteListener(null);
-      node.active = false;
-      resolve("");
-    });
-    spine.setAnimation(0, aniName, false);
-  });
-}
-
-export function playSpineInNodeWithEvent({
-  node,
-  aniName,
-  eventCallback,
-  completeCallback,
-  autoDisable = true,
-}: {
-  node: Node;
-  aniName: string;
-  eventCallback?: (eventName: string) => void;
-  completeCallback?: () => void;
-  autoDisable?: boolean;
-}) {
-  return new Promise((resolve, reject) => {
-    node.active = true;
-    const spine = node.getComponent(sp.Skeleton);
-
-    spine.setEventListener((_entry: any, event: any) => {
-      spine.setEventListener(null);
-      eventCallback?.(event.data.name);
-    });
-
-    spine.setCompleteListener(() => {
-      spine.setCompleteListener(null);
-      completeCallback?.();
-      if (autoDisable) {
-        node.active = false;
-      }
-      resolve("");
-    });
-    spine.setAnimation(0, aniName, false);
-  });
-}
-
 export function progressiveMove({
   nodeList,
   intervalDelay = 0.2,
@@ -660,7 +736,7 @@ export function progressiveMove({
         if (isPlayAudio) {
           // playOneShot(AUDIO_ENUM.弹出);
         }
-        moveIn(
+        movePointAToPointB(
           node,
           startPos,
           node.position.clone(),
@@ -764,21 +840,21 @@ export function setAnimationSpeed(node: Node, speed: number) {
 }
 
 /**
- * 给节点绑定Button组件并设置点击事件
- * @param options 配置选项
- * @param options.node 要绑定Button的节点
- * @param options.targetNode 事件处理代码组件所属的节点
- * @param options.component 脚本组件
- * @param options.handler 处理函数
- * @param options.customEventData 自定义事件数据
- * 调用方式：
- * bindButtonWithHandler({
-      node: this.skillTreeItemList[0].itemNode,
-      targetNode: this.node,
-      component: this,
-      handler: this.handleStart
-    });
- */
+   * 给节点绑定Button组件并设置点击事件
+   * @param options 配置选项
+   * @param options.node 要绑定Button的节点
+   * @param options.targetNode 事件处理代码组件所属的节点
+   * @param options.component 脚本组件
+   * @param options.handler 处理函数
+   * @param options.customEventData 自定义事件数据
+   * 调用方式：
+   * bindButtonWithHandler({
+        node: this.skillTreeItemList[0].itemNode,
+        targetNode: this.node,
+        component: this,
+        handler: this.handleStart
+      });
+   */
 export function bindButtonWithHandler({
   node,
   targetNode,
