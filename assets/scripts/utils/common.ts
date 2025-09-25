@@ -21,6 +21,7 @@ import {
   Button,
   EventHandler,
   AnimationClip,
+  Sprite,
 } from "cc";
 import { playOneShot } from "../baseManager/AudioManager";
 import { AUDIO_ENUM } from "../global";
@@ -911,11 +912,11 @@ export function shakeRotation(
   shakeAngle: number = 15,
   shakeDuration: number = 0.2,
   shakeCount: number = 2,
-  easing: TweenEasing = 'sineInOut'
+  easing: TweenEasing = "sineInOut"
 ): Promise<void> {
-  return new Promise(resolve => {
+  return new Promise((resolve) => {
     if (!node || !node.isValid) {
-      console.warn('[shakeRotation] 节点无效');
+      console.warn("[shakeRotation] 节点无效");
       resolve();
       return;
     }
@@ -931,7 +932,7 @@ export function shakeRotation(
       shakeSequence = shakeSequence.to(
         shakeDuration,
         {
-          angle: originalRotation + shakeAngle
+          angle: originalRotation + shakeAngle,
         },
         { easing }
       );
@@ -940,7 +941,7 @@ export function shakeRotation(
       shakeSequence = shakeSequence.to(
         shakeDuration,
         {
-          angle: originalRotation - shakeAngle
+          angle: originalRotation - shakeAngle,
         },
         { easing }
       );
@@ -951,7 +952,7 @@ export function shakeRotation(
       .to(
         shakeDuration,
         {
-          angle: originalRotation
+          angle: originalRotation,
         },
         { easing }
       )
@@ -962,4 +963,54 @@ export function shakeRotation(
     // 开始摇晃动画
     shakeSequence.start();
   });
+}
+
+/**
+ * 点击弹窗卡片，选中卡片最终放大，未选中卡片最终缩小
+ * 卡片Button组件需设置transition=NONE
+ * @param selectedCard 选中卡片，通过event.target获取
+ */
+export async function playCardSelectAnimation(
+  selectedCard,
+  minScale = 0.8,
+  maxScale = 1.2,
+  duration = 0.25
+): Promise<void> {
+  const cardA = selectedCard;
+  const cardB = selectedCard.parent.children.find(
+    (child) => child !== selectedCard
+  );
+
+  // 避免重复点击
+  cardA.getComponent(Button).interactable = false;
+  cardB.getComponent(Button).interactable = false;
+
+  if (cardA && cardB) {
+    const originalScaleA = cardA.getScale().clone();
+    const parsedMinScale = originalScaleA.x * minScale;
+    const parsedMaxScale = originalScaleA.x * maxScale;
+
+    await new Promise((resolve) => {
+      tween(cardA)
+        .to(duration, { scale: new Vec3(parsedMinScale, parsedMinScale, 1) })
+        .call(() => {
+          tween(cardA)
+            .to(duration, {
+              scale: new Vec3(parsedMaxScale, parsedMaxScale, 1),
+            })
+            .start();
+
+          cardB.getComponent(Sprite).grayscale = true;
+          tween(cardB)
+            .to(duration, {
+              scale: new Vec3(parsedMinScale, parsedMinScale, 1),
+            })
+            .call(() => {
+              resolve(null);
+            })
+            .start();
+        })
+        .start();
+    });
+  }
 }
