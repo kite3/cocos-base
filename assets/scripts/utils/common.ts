@@ -178,112 +178,6 @@ export function getSpineAnimationNames(skeleton: sp.Skeleton): string[] {
 }
 
 /**
- * 追加特效到指定节点,例如点击后显示特效
- */
-export function addEffectWithTargetNode({
-  prefab,
-  targetNode,
-  offset = { x: 0, y: 0 },
-  aniOpts = { loopNum: 1, scaleDirection: 1 },
-  onComplete,
-}: {
-  prefab: Prefab;
-  targetNode: Node;
-  offset?: { x: number; y: number };
-  aniOpts?: { loopNum: number; scaleDirection?: number };
-  onComplete?: () => void;
-}) {
-  const node = instantiate(prefab);
-
-  // 追加到canvas节点比较稳妥,添加到其他节点可能会受到layout等组件影响
-  const localPos = find("Canvas/main/特效容器")
-    .getComponent(UITransform)
-    .convertToNodeSpaceAR(targetNode.worldPosition);
-  find("Canvas/main/特效容器").addChild(node);
-
-  node.setPosition(localPos.x + offset.x, localPos.y + offset.y, localPos.z);
-  node.setScale(
-    node.scale.x * aniOpts.scaleDirection,
-    node.scale.y,
-    node.scale.z
-  );
-
-  let animation: Animation = null;
-  // 检查是否有spine组件
-  const spine = sp && node.getComponent(sp.Skeleton);
-  const isLoop = aniOpts.loopNum === -1;
-  if (spine) {
-    const defaultAnimation = getSpineAnimationNames(spine)[0];
-    if (!defaultAnimation) {
-      console.error("没有找到spine动画");
-      return;
-    }
-    if (!isLoop) {
-      spine.setCompleteListener(() => {
-        node.destroy();
-      });
-    }
-    spine.setAnimation(0, defaultAnimation, isLoop);
-  } else {
-    animation = node.getComponent(Animation);
-    if (isLoop) {
-      animation.on(Animation.EventType.FINISHED, () => {
-        onComplete?.();
-        animation.play();
-      });
-      animation.play();
-    } else {
-      let playCount = 0;
-      const onFinished = () => {
-        playCount++;
-        if (playCount >= aniOpts.loopNum) {
-          node.destroy();
-        } else {
-          animation.play();
-        }
-      };
-      animation.on(Animation.EventType.FINISHED, onFinished);
-      animation.play();
-    }
-  }
-
-  return {
-    animation,
-    destoryAnimFn: () => {
-      node.destroy();
-    },
-  };
-}
-
-/**
- * 添加特效到指定位置
- */
-export function addEffectWithWorldPosition({
-  prefab,
-  worldPosition,
-}: {
-  prefab: Prefab;
-  worldPosition: Vec3;
-  done?: (node: Node, animation: Animation) => void;
-}) {
-  const node = instantiate(prefab);
-
-  // 追加到canvas节点比较稳妥,添加到其他节点可能会受到layout等组件英雄
-  node.parent = find("Canvas");
-  const localPos = find("Canvas")
-    .getComponent(UITransform)
-    .convertToNodeSpaceAR(worldPosition);
-
-  node.setPosition(localPos.x, localPos.y, localPos.z);
-
-  const animation = node.getComponent(Animation);
-  animation.once(Animation.EventType.FINISHED, () => {
-    node.destroy();
-  });
-  animation.play();
-}
-
-/**
  * 获取刘海高度,不是特别准确,仅供参考
  * @returns
  */
@@ -455,10 +349,6 @@ export function fadeOut(node: Node, duration = 0.4) {
     .start();
 }
 
-export function findHeroCon() {
-  return find("Canvas/main/player");
-}
-
 export function getPrevNode(node: Node) {
   const currentIndex = node.parent.children.indexOf(node);
   if (currentIndex > 0) {
@@ -521,6 +411,145 @@ export function shuffleArray(array: any[]) {
     const j = Math.floor(Math.random() * (i + 1));
     [array[i], array[j]] = [array[j], array[i]];
   }
+}
+
+/**
+ * 添加序列帧动画到指定位置
+ * @param prefab 动画预制体
+ * @param targetNode 目标节点
+ * @param offset 偏移
+ * @param loopNum 循环次数：-1为无限循环，1为播放一次，2为播放两次，以此类推
+ * @param scaleDirection 缩放方向
+ * @param onComplete 完成回调
+ */
+export function addAnimationToNode({
+  prefab,
+  targetNode,
+  offset = { x: 0, y: 0 },
+  loopNum = 1,
+  scaleDirection = 1,
+  onComplete,
+}: {
+  prefab: Prefab;
+  targetNode: Node;
+  offset?: { x: number; y: number };
+  loopNum?: number;
+  scaleDirection?: number;
+  onComplete?: () => void;
+}) {
+  // 去除targetNode的layout组件
+  const layout = targetNode.getComponent(Layout);
+  if (layout) {
+    layout.enabled = false;
+  }
+
+  const node = instantiate(prefab);
+  targetNode.addChild(node);
+
+  // 设置位置和缩放（含朝向）
+  node.setPosition(offset.x, offset.y, 0);
+  node.setScale(node.scale.x * scaleDirection, node.scale.y, node.scale.z);
+
+  const animation = node.getComponent(Animation);
+  if (!animation) {
+    console.error("没有找到animation组件");
+    return;
+  }
+
+  // 设置动画循环模式，避免受到cocos动画编辑器的影响
+  if (loopNum !== -1) {
+    const state = animation.getState(animation.defaultClip.name);
+    state.wrapMode = AnimationClip.WrapMode.Normal;
+    state.repeatCount = 1;
+  }
+
+  let playCount = 0;
+  const onFinished = () => {
+    playCount++;
+    if (playCount >= loopNum && loopNum !== -1) {
+      node.destroy();
+      onComplete?.();
+    } else {
+      animation.play();
+    }
+  };
+  animation.on(Animation.EventType.FINISHED, onFinished);
+  animation.play();
+
+  return {
+    aniObject: animation,
+    destoryAniFn: () => {
+      node.destroy();
+    },
+  };
+}
+
+/**
+ * 添加spine动画到指定位置
+ * @param prefab 动画预制体
+ * @param targetNode 目标节点
+ * @param offset 偏移
+ * @param loopNum 循环次数：-1为无限循环，1为播放一次，2为播放两次，以此类推
+ * @param scaleDirection 缩放方向
+ * @param onComplete 完成回调
+ */
+export function addSpineToNode({
+  prefab,
+  targetNode,
+  aniName,
+  offset = { x: 0, y: 0 },
+  loopNum = -1,
+  scaleDirection = 1,
+  onComplete,
+}: {
+  prefab: Prefab;
+  targetNode: Node;
+  aniName?: string;
+  offset?: { x: number; y: number };
+  loopNum?: number;
+  scaleDirection?: number;
+  onComplete?: () => void;
+}) {
+  // 去除targetNode的layout组件
+  const layout = targetNode.getComponent(Layout);
+  if (layout) {
+    layout.enabled = false;
+  }
+
+  const node = instantiate(prefab);
+  targetNode.addChild(node);
+
+  // 设置位置和朝向
+  node.setPosition(offset.x, offset.y, 0);
+  node.setScale(node.scale.x * scaleDirection, node.scale.y, 1);
+
+  const spine = node.getComponent(sp.Skeleton);
+  if (!spine) {
+    console.error("没有找到spine组件");
+    return;
+  }
+
+  const defaultAnimation = getSpineAnimationNames(spine)[0];
+  const playAniName = aniName ?? defaultAnimation;
+
+  let playCount = 0;
+  spine.setCompleteListener(() => {
+    playCount++;
+    if (playCount >= loopNum && loopNum !== -1) {
+      node.destroy();
+      onComplete?.();
+    } else {
+      spine.setAnimation(0, playAniName, false);
+    }
+  });
+  spine.setAnimation(0, playAniName, false);
+
+  return {
+    aniObject: spine,
+    destoryAniFn: () => {
+      node.destroy();
+    },
+  };
 }
 
 export function playAnimationInNode(node: Node, isDebug: boolean = false) {
