@@ -193,13 +193,13 @@ function createAnimationController({
   loopNum = 1,
   onInterval,
   onComplete,
-  autoDisable = true,
+  autoDestroy = true,
 }: {
   animationNode: Node;
   loopNum?: number;
   onInterval?: (playCount: number) => void;
   onComplete?: () => void;
-  autoDisable?: boolean;
+  autoDestroy?: boolean;
 }) {
   const animation = animationNode.getComponent(Animation);
   if (!animation) {
@@ -210,15 +210,19 @@ function createAnimationController({
   // 设置动画循环模式，避免受到cocos动画编辑器的影响
   if (loopNum !== -1) {
     const state = animation.getState(animation.defaultClip.name);
-    state.wrapMode = AnimationClip.WrapMode.Normal;
-    state.repeatCount = 1;
+    if (state) {
+      state.wrapMode = AnimationClip.WrapMode.Normal;
+      state.repeatCount = 1;
+    } else {
+      console.warn("[createAnimationController]没有找到动画状态");
+    }
   }
 
   let playCount = 0;
   const onFinished = () => {
     playCount++;
     if (playCount >= loopNum && loopNum !== -1) {
-      if (autoDisable) {
+      if (autoDestroy) {
         animationNode.destroy();
       }
       onComplete?.();
@@ -246,13 +250,13 @@ export function playAnimationInNode({
   loopNum = 1,
   onInterval,
   onComplete,
-  autoDisable = true,
+  autoDestroy = true,
 }: {
   targetNode: Node;
   loopNum?: number;
   onInterval?: (playCount: number) => void;
   onComplete?: () => void;
-  autoDisable?: boolean;
+  autoDestroy?: boolean;
 }) {
   targetNode.active = true;
   return createAnimationController({
@@ -260,7 +264,7 @@ export function playAnimationInNode({
     loopNum,
     onInterval,
     onComplete,
-    autoDisable,
+    autoDestroy,
   });
 }
 
@@ -273,6 +277,7 @@ export function addAnimationToNode({
   offset = { x: 0, y: 0 },
   loopNum = 1,
   scaleDirection = 1,
+  autoDestroy = true,
   onInterval,
   onComplete,
 }: {
@@ -281,6 +286,7 @@ export function addAnimationToNode({
   offset?: { x: number; y: number };
   loopNum?: number;
   scaleDirection?: number;
+  autoDestroy?: boolean;
   onInterval?: (playCount: number) => void;
   onComplete?: () => void;
 }) {
@@ -302,7 +308,7 @@ export function addAnimationToNode({
     loopNum,
     onInterval,
     onComplete,
-    autoDisable: true,
+    autoDestroy,
   });
 }
 
@@ -376,7 +382,7 @@ export function playSpineInNode({
   onEvent,
   onInterval,
   onComplete,
-  autoDisable = true,
+  autoDestroy = true,
   loopNum = 1,
 }: {
   node: Node;
@@ -384,7 +390,7 @@ export function playSpineInNode({
   onEvent?: (eventName: string) => void;
   onInterval?: (playCount: number) => void;
   onComplete?: () => void;
-  autoDisable?: boolean;
+  autoDestroy?: boolean;
   loopNum?: number;
 }) {
   node.active = true;
@@ -395,7 +401,7 @@ export function playSpineInNode({
     onEvent,
     onInterval,
     onComplete,
-    autoDestroy: true,
+    autoDestroy,
   });
 }
 
@@ -409,6 +415,7 @@ export function addSpineToNode({
   offset = { x: 0, y: 0 },
   loopNum = -1,
   scaleDirection = 1,
+  autoDestroy = true,
   onEvent,
   onInterval,
   onComplete,
@@ -422,6 +429,7 @@ export function addSpineToNode({
   onEvent?: (eventName: string) => void;
   onInterval?: (playCount: number) => void;
   onComplete?: () => void;
+  autoDestroy?: boolean;
 }) {
   // 去除targetNode的layout组件
   const layout = targetNode.getComponent(Layout);
@@ -443,7 +451,7 @@ export function addSpineToNode({
     onEvent,
     onInterval,
     onComplete,
-    autoDestroy: true,
+    autoDestroy,
   });
 }
 
