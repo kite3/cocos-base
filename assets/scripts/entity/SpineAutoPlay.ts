@@ -1,28 +1,61 @@
-import { _decorator, CCBoolean, CCString, Component, Node, sp } from 'cc';
-import { getSpineAnimationNames } from '../utils/common';
+import { _decorator, CCBoolean, CCString, Component, Node, sp, Vec3 } from "cc";
 const { ccclass, property } = _decorator;
+import {
+  globalEvent,
+  GlobalEvent,
+  AUDIO_ENUM,
+  GAME_STATUS,
+  getGameStatus,
+  GAME_FIGURE_KEY,
+  gameFigure,
+} from "db://assets/scripts/global";
+import { playOneShot } from "db://assets/scripts/baseManager/AudioManager";
+import { showUI, hideUI } from "db://assets/scripts/baseManager/UIManager";
+import { updateFigure } from "db://assets/scripts/baseManager/FigureAnimationManager";
+import { getSpineAnimationNames } from "../utils/common";
 
-@ccclass('SpineAutoPlay')
+@ccclass("SpineAutoPlay")
 export class SpineAutoPlay extends Component {
-  @property(Node)
-  spineNode: Node = null;
   @property(CCString)
-  animName: string = '';
-  @property(CCBoolean)
-  isLoop: boolean = true;
+  spineName: string = "";
 
-  spine: sp.Skeleton = null;
+  private _initPosition: Vec3 = new Vec3();
+  private _initScale: Vec3 = new Vec3();
+  onLoad() {
+    this._initPosition = this.node.position.clone();
+    this._initScale = this.node.getScale().clone();
+    //通用组件模板，默认提供全局事件绑定、UI事件绑定、初始化方法
+    this.bindGlobalEvent();
+    this.bindUIEvent();
+    this.init();
+  }
+  update(deltaTime: number) {}
 
-  start() {
-    if (!this.spineNode) {
-      this.spineNode = this.node;
+  bindGlobalEvent() {
+    globalEvent.on(GlobalEvent.GAME_RESET, this.init, this);
+  }
+
+  bindUIEvent() {}
+
+  init() {
+    this.node.setPosition(this._initPosition);
+    this.node.setScale(this._initScale);
+
+    const spine = this.node.getComponent(sp.Skeleton);
+    if (!spine) {
+      console.error("[SpineAutoPlay] spine不存在");
+      return;
     }
-    this.spine = this.spineNode.getComponent(sp.Skeleton);
-    if (this.spine) {
-      if (!this.animName) {
-        this.animName = getSpineAnimationNames(this.spine)[0];
-      }
-      this.spine.setAnimation(0, this.animName, this.isLoop);
+
+    if (!this.spineName) {
+      this.spineName = getSpineAnimationNames(spine)[0];
     }
+    if (!spine.loop) {
+      spine.setCompleteListener(() => {
+        spine.setCompleteListener(null);
+        this.node.destroy();
+      });
+    }
+    spine.setAnimation(0, this.spineName, spine.loop);
   }
 }

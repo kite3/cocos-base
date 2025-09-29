@@ -193,13 +193,13 @@ function createAnimationController({
   loopNum = 1,
   onInterval,
   onComplete,
-  autoDestroy = true,
+  destoryType = "destroy",
 }: {
   animationNode: Node;
   loopNum?: number;
   onInterval?: (playCount: number) => void;
   onComplete?: () => void;
-  autoDestroy?: boolean;
+  destoryType?: "destroy" | "hide" | "none";
 }) {
   const animation = animationNode.getComponent(Animation);
   if (!animation) {
@@ -222,8 +222,10 @@ function createAnimationController({
   const onFinished = () => {
     playCount++;
     if (playCount >= loopNum && loopNum !== -1) {
-      if (autoDestroy) {
+      if (destoryType === "destroy") {
         animationNode.destroy();
+      } else if (destoryType === "hide") {
+        animationNode.active = false;
       }
       onComplete?.();
     } else {
@@ -250,13 +252,13 @@ export function playAnimationInNode({
   loopNum = 1,
   onInterval,
   onComplete,
-  autoDestroy = true,
+  destoryType = "destroy",
 }: {
   targetNode: Node;
   loopNum?: number;
   onInterval?: (playCount: number) => void;
   onComplete?: () => void;
-  autoDestroy?: boolean;
+  destoryType?: "destroy" | "hide" | "none";
 }) {
   targetNode.active = true;
   return createAnimationController({
@@ -264,7 +266,7 @@ export function playAnimationInNode({
     loopNum,
     onInterval,
     onComplete,
-    autoDestroy,
+    destoryType,
   });
 }
 
@@ -277,7 +279,7 @@ export function addAnimationToNode({
   offset = { x: 0, y: 0 },
   loopNum = 1,
   scaleDirection = 1,
-  autoDestroy = true,
+  destoryType = "destroy",
   onInterval,
   onComplete,
 }: {
@@ -286,7 +288,7 @@ export function addAnimationToNode({
   offset?: { x: number; y: number };
   loopNum?: number;
   scaleDirection?: number;
-  autoDestroy?: boolean;
+  destoryType?: "destroy" | "hide" | "none";
   onInterval?: (playCount: number) => void;
   onComplete?: () => void;
 }) {
@@ -308,7 +310,7 @@ export function addAnimationToNode({
     loopNum,
     onInterval,
     onComplete,
-    autoDestroy,
+    destoryType,
   });
 }
 
@@ -319,7 +321,7 @@ function createSpineController({
   onEvent,
   onInterval,
   onComplete,
-  autoDestroy = true,
+  destoryType = "destroy",
 }: {
   spineNode: Node;
   aniName?: string;
@@ -327,7 +329,7 @@ function createSpineController({
   onEvent?: (eventName: string) => void;
   onInterval?: (playCount: number) => void;
   onComplete?: () => void;
-  autoDestroy?: boolean;
+  destoryType?: "destroy" | "hide" | "none";
 }) {
   const spine = spineNode.getComponent(sp.Skeleton);
   if (!spine) {
@@ -352,8 +354,10 @@ function createSpineController({
     playCount++;
     if (playCount >= loopNum && loopNum !== -1) {
       spine.setCompleteListener(null);
-      if (autoDestroy) {
+      if (destoryType === "destroy") {
         spineNode.destroy();
+      } else if (destoryType === "hide") {
+        spineNode.active = false;
       }
       onComplete?.();
     } else {
@@ -382,7 +386,7 @@ export function playSpineInNode({
   onEvent,
   onInterval,
   onComplete,
-  autoDestroy = true,
+  destoryType = "destroy",
   loopNum = 1,
 }: {
   node: Node;
@@ -390,7 +394,7 @@ export function playSpineInNode({
   onEvent?: (eventName: string) => void;
   onInterval?: (playCount: number) => void;
   onComplete?: () => void;
-  autoDestroy?: boolean;
+  destoryType?: "destroy" | "hide" | "none";
   loopNum?: number;
 }) {
   node.active = true;
@@ -401,7 +405,7 @@ export function playSpineInNode({
     onEvent,
     onInterval,
     onComplete,
-    autoDestroy,
+    destoryType,
   });
 }
 
@@ -415,7 +419,7 @@ export function addSpineToNode({
   offset = { x: 0, y: 0 },
   loopNum = -1,
   scaleDirection = 1,
-  autoDestroy = true,
+  destoryType = "destroy",
   onEvent,
   onInterval,
   onComplete,
@@ -429,7 +433,7 @@ export function addSpineToNode({
   onEvent?: (eventName: string) => void;
   onInterval?: (playCount: number) => void;
   onComplete?: () => void;
-  autoDestroy?: boolean;
+  destoryType?: "destroy" | "hide" | "none";
 }) {
   // 去除targetNode的layout组件
   const layout = targetNode.getComponent(Layout);
@@ -451,7 +455,7 @@ export function addSpineToNode({
     onEvent,
     onInterval,
     onComplete,
-    autoDestroy,
+    destoryType,
   });
 }
 
