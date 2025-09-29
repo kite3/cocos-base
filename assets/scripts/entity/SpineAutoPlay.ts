@@ -1,4 +1,14 @@
-import { _decorator, CCBoolean, CCString, Component, Node, sp, Vec3 } from "cc";
+import {
+  _decorator,
+  CCBoolean,
+  CCFloat,
+  CCString,
+  Component,
+  Enum,
+  Node,
+  sp,
+  Vec3
+} from 'cc';
 const { ccclass, property } = _decorator;
 import {
   globalEvent,
@@ -7,17 +17,28 @@ import {
   GAME_STATUS,
   getGameStatus,
   GAME_FIGURE_KEY,
-  gameFigure,
-} from "db://assets/scripts/global";
-import { playOneShot } from "db://assets/scripts/baseManager/AudioManager";
-import { showUI, hideUI } from "db://assets/scripts/baseManager/UIManager";
-import { updateFigure } from "db://assets/scripts/baseManager/FigureAnimationManager";
-import { getSpineAnimationNames } from "../utils/common";
+  gameFigure
+} from 'db://assets/scripts/global';
+import {
+  playOneShot,
+  playShotMusic
+} from 'db://assets/scripts/baseManager/AudioManager';
+import { showUI, hideUI } from 'db://assets/scripts/baseManager/UIManager';
+import { updateFigure } from 'db://assets/scripts/baseManager/FigureAnimationManager';
+import { getSpineAnimationNames } from '../utils/common';
 
-@ccclass("SpineAutoPlay")
+@ccclass('SpineAutoPlay')
 export class SpineAutoPlay extends Component {
   @property(CCString)
-  spineName: string = "";
+  spineName: string = '';
+
+  @property({
+    type: Enum(AUDIO_ENUM)
+  })
+  audioName = AUDIO_ENUM.NONE;
+
+  @property(CCFloat)
+  audioVolume: number = 1.0;
 
   private _initPosition: Vec3 = new Vec3();
   private _initScale: Vec3 = new Vec3();
@@ -43,7 +64,7 @@ export class SpineAutoPlay extends Component {
 
     const spine = this.node.getComponent(sp.Skeleton);
     if (!spine) {
-      console.error("[SpineAutoPlay] spine不存在");
+      console.error('[SpineAutoPlay] spine不存在');
       return;
     }
 
@@ -51,6 +72,9 @@ export class SpineAutoPlay extends Component {
       this.spineName = getSpineAnimationNames(spine)[0];
     }
     if (!spine.loop) {
+      if (this.audioName !== AUDIO_ENUM.NONE) {
+        playShotMusic(this.audioName, this.audioVolume);
+      }
       spine.setCompleteListener(() => {
         spine.setCompleteListener(null);
         this.node.destroy();
