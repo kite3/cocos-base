@@ -1026,3 +1026,21 @@ export async function playCardSelectAnimation(
     });
   }
 }
+
+/**
+ * 延迟n帧执行回调
+ * @param comp 依附的Component
+ * @param n 延迟帧数
+ * @param cb 回调函数
+ */
+export function delayFrames(comp: Component, n: number, cb?: () => void) {
+  let count = 0;
+  function frameCallback() {
+    count++;
+    if (count >= n) {
+      comp.unschedule(frameCallback);
+      cb && cb();
+    }
+  }
+  comp.schedule(frameCallback, 0);
+}
