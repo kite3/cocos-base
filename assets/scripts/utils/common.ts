@@ -1044,3 +1044,32 @@ export function delayFrames(comp: Component, n: number, cb?: () => void) {
   }
   comp.schedule(frameCallback, 0);
 }
+
+/**
+ * 解析事件参数字符串
+ * @param eventData 事件参数字符串，格式如 "type=random&value=0"
+ * @returns 解析后的参数对象
+ * @example
+ * parseEventParams("type=random&value=0") // { type: "random", value: "0" }
+ * parseEventParams("id=123&name=test&enabled=true") // { id: "123", name: "test", enabled: "true" }
+ */
+export function parseEventParams(eventData: string): Record<string, string> {
+  const params: Record<string, string> = {};
+
+  if (!eventData || typeof eventData !== 'string') {
+    return params;
+  }
+
+  // 按 & 分割参数
+  const pairs = eventData.split('&');
+
+  for (const pair of pairs) {
+    // 按 = 分割键值对
+    const [key, value] = pair.split('=');
+    if (key && value !== undefined) {
+      params[key.trim()] = value.trim();
+    }
+  }
+
+  return params;
+}
