@@ -89,7 +89,7 @@ export class BasicProgressBar extends Component {
     if (this.enableAutoDecay && this._rate > 0) {
       // 检查是否达到完成阈值
       if (this._rate < this.completionThreshold) {
-        this._rate = Math.max(0, this._rate - this.decaySpeed / 100);
+        this._rate = Math.max(0, this._rate - this.decaySpeed);
         this.setProgress(this._rate);
       }
     }
