@@ -115,7 +115,7 @@ export class SceneMove extends Component {
     const minX = viewHalfWidth - bgRight;
 
     // 底部的Y间距
-    const maxY = -viewHalfHeight - bgBottom - 700;
+    const maxY = -viewHalfHeight - bgBottom;
 
     // 顶部的Y间距
     const minY = viewHalfHeight - bgTop;
