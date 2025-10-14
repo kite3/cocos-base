@@ -1073,3 +1073,49 @@ export function parseEventParams(eventData: string): Record<string, string> {
 
   return params;
 }
+
+/**
+ * 从 URL 中获取查询参数
+ * @param url 可选，URL 字符串。不传则使用当前页面 URL
+ * @returns 查询参数对象
+ * @example
+ * // 当前 URL: http://example.com?id=123&name=test&debug=1
+ * getUrlParams() // { id: "123", name: "test", debug: "1" }
+ */
+export function getUrlParams(url?: string): Record<string, string> {
+  const params: Record<string, string> = {};
+
+  try {
+    // 如果没有传入 URL，使用当前页面 URL
+    const targetUrl =
+      url || (typeof window !== 'undefined' ? window.location.href : '');
+
+    if (!targetUrl) {
+      return params;
+    }
+
+    const urlObj = new URL(targetUrl);
+
+    urlObj.searchParams.forEach((value, key) => {
+      params[key] = value;
+    });
+  } catch (error) {
+    console.warn('[getUrlParams] 解析 URL 失败:', error);
+  }
+
+  return params;
+}
+
+/**
+ * 从 URL 中获取单个查询参数
+ * @param key 参数名
+ * @param url 可选，URL 字符串。不传则使用当前页面 URL
+ * @returns 参数值，如果不存在则返回 null
+ * @example
+ * // 当前 URL: http://example.com?id=123&name=test
+ * getUrlParam('id') // "123"
+ */
+export function getUrlParamByKey(key: string, url?: string): string | null {
+  const params = getUrlParams(url);
+  return params[key] || null;
+}
