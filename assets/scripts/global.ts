@@ -26,6 +26,8 @@ export const globalEvent = new EventTarget();
 export enum GlobalEvent {
   NONE = "none", //无事件
 
+  FOCUS_TO_NODE = 'FOCUS_TO_NODE',
+
   SHAKE_SCREEN = "shakeScreen", //摇晃屏幕
   GAME_PAUSE = "gamePause", //游戏暂停
   GAME_RESUME = "gameResume", //游戏恢复
