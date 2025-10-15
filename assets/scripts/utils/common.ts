@@ -526,42 +526,68 @@ export function scaleWithBottomAlign(node: Node, scale: number | Vec3) {
 }
 
 export function fadeIn(node: Node, duration = 0.4) {
-  node.active = true;
-  const uiOpacity = getUIOpacity(node);
-  uiOpacity.opacity = 0;
-  tween(uiOpacity)
-    .to(
-      duration,
-      {
-        opacity: 255,
-      },
-      {
-        easing: "quadOut",
-      }
-    )
-    .start();
+  return new Promise((resolve, reject) => {
+    if (!node) {
+      console.warn('[fadeIn]节点为空');
+      resolve('');
+      return;
+    }
+    if (!node.isValid) {
+      console.warn('[fadeIn]节点已销毁', node.name);
+      resolve('');
+      return;
+    }
+    node.active = true;
+    const uiOpacity = getUIOpacity(node);
+    uiOpacity.opacity = 0;
+    tween(uiOpacity)
+      .to(
+        duration,
+        {
+          opacity: 255
+        },
+        {
+          easing: 'quadOut'
+        }
+      )
+      .call(() => {
+        resolve('');
+      })
+      .start();
+  });
 }
 
 export function fadeOut(node: Node, duration = 0.4, isDestroy = true) {
-  const uiOpacity = getUIOpacity(node);
-  tween(uiOpacity)
-    .to(
-      duration,
-      {
-        opacity: 0,
-      },
-      {
-        easing: "quadOut",
-      }
-    )
-    .call(() => {
-      if (isDestroy) {
-        node.destroy();
-      } else {
-        node.active = false;
-      }
-    })
-    .start();
+  if (!node) {
+    console.warn('[fadeOut]节点为空');
+    return Promise.resolve();
+  }
+  if (!node.isValid) {
+    console.warn('[fadeOut]节点已销毁', node.name);
+    return Promise.resolve();
+  }
+  return new Promise((resolve, reject) => {
+    const uiOpacity = getUIOpacity(node);
+    tween(uiOpacity)
+      .to(
+        duration,
+        {
+          opacity: 0
+        },
+        {
+          easing: 'quadOut'
+        }
+      )
+      .call(() => {
+        if (isDestroy) {
+          node.destroy();
+        } else {
+          node.active = false;
+        }
+        resolve('');
+      })
+      .start();
+  });
 }
 
 export function scaleIn(
