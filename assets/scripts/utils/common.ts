@@ -278,7 +278,7 @@ export function addAnimationToNode({
   targetNode,
   offset = { x: 0, y: 0 },
   loopNum = 1,
-  scaleDirection = 1,
+  scaleDirection,
   destoryType = "destroy",
   onInterval,
   onComplete,
@@ -303,6 +303,9 @@ export function addAnimationToNode({
 
   // 设置位置和缩放（含朝向）
   node.setPosition(offset.x, offset.y, 0);
+  if (!scaleDirection) {
+    scaleDirection = node.scale.x;
+  }
   node.setScale(node.scale.x * scaleDirection, node.scale.y, node.scale.z);
 
   return createAnimationController({
@@ -318,7 +321,10 @@ function createSpineController({
   spineNode,
   aniName,
   loopNum = 1,
+  timeScale = 1,
+  intervalTime = 0,
   onEvent,
+  onIntervalStart,
   onInterval,
   onComplete,
   destoryType = "destroy",
@@ -326,7 +332,10 @@ function createSpineController({
   spineNode: Node;
   aniName?: string;
   loopNum?: number;
+  timeScale?: number;
+  intervalTime?: number;
   onEvent?: (eventName: string) => void;
+  onIntervalStart?: (eventName: number) => void;
   onInterval?: (playCount: number) => void;
   onComplete?: () => void;
   destoryType?: "destroy" | "hide" | "none";
@@ -350,27 +359,36 @@ function createSpineController({
   }
 
   let playCount = 0;
-  const onFinished = () => {
+  const onFinished = async () => {
+    spine.setCompleteListener(null);
     playCount++;
     if (playCount >= loopNum && loopNum !== -1) {
-      spine.setCompleteListener(null);
       if (destoryType === "destroy") {
         spineNode.destroy();
       } else if (destoryType === "hide") {
         spineNode.active = false;
       }
+      onInterval?.(playCount);
       onComplete?.();
     } else {
-      spine.setAnimation(0, playAniName, false);
+      spineNode.active = false;
       onInterval?.(playCount);
+      await sleep(intervalTime);
+      onIntervalStart?.(playCount);
+      spineNode.active = true;
+      spine.setCompleteListener(onFinished);
+      spine.setAnimation(0, playAniName, false);
     }
   };
 
+  onIntervalStart?.(playCount);
   spine.setCompleteListener(onFinished);
+  spine.timeScale = timeScale;
   spine.setAnimation(0, playAniName, false);
 
   return {
     aniObject: spine,
+    aniNode: spineNode,
     destoryAniFn: () => {
       spineNode.destroy();
     },
@@ -383,16 +401,22 @@ function createSpineController({
 export function playSpineInNode({
   node,
   aniName,
+  timeScale = 1,
+  intervalTime = 0,
   onEvent,
   onInterval,
+  onIntervalStart,
   onComplete,
   destoryType = "destroy",
   loopNum = 1,
 }: {
   node: Node;
   aniName: string;
+  timeScale?: number;
+  intervalTime?: number; //间隔时间
   onEvent?: (eventName: string) => void;
   onInterval?: (playCount: number) => void;
+  onIntervalStart?: (playCount: number) => void;
   onComplete?: () => void;
   destoryType?: "destroy" | "hide" | "none";
   loopNum?: number;
@@ -401,8 +425,11 @@ export function playSpineInNode({
   return createSpineController({
     spineNode: node,
     aniName,
+    timeScale,
     loopNum,
+    intervalTime,
     onEvent,
+    onIntervalStart,
     onInterval,
     onComplete,
     destoryType,
@@ -420,6 +447,7 @@ export function addSpineToNode({
   loopNum = -1,
   scaleDirection = 1,
   destoryType = "destroy",
+  timeScale = 1,
   onEvent,
   onInterval,
   onComplete,
@@ -430,6 +458,7 @@ export function addSpineToNode({
   offset?: { x: number; y: number };
   loopNum?: number;
   scaleDirection?: number;
+  timeScale?: number;
   onEvent?: (eventName: string) => void;
   onInterval?: (playCount: number) => void;
   onComplete?: () => void;
@@ -452,6 +481,7 @@ export function addSpineToNode({
     spineNode: node,
     aniName,
     loopNum,
+    timeScale,
     onEvent,
     onInterval,
     onComplete,
@@ -528,13 +558,13 @@ export function scaleWithBottomAlign(node: Node, scale: number | Vec3) {
 export function fadeIn(node: Node, duration = 0.4) {
   return new Promise((resolve, reject) => {
     if (!node) {
-      console.warn('[fadeIn]节点为空');
-      resolve('');
+      console.warn("[fadeIn]节点为空");
+      resolve("");
       return;
     }
     if (!node.isValid) {
-      console.warn('[fadeIn]节点已销毁', node.name);
-      resolve('');
+      console.warn("[fadeIn]节点已销毁", node.name);
+      resolve("");
       return;
     }
     node.active = true;
@@ -544,14 +574,14 @@ export function fadeIn(node: Node, duration = 0.4) {
       .to(
         duration,
         {
-          opacity: 255
+          opacity: 255,
         },
         {
-          easing: 'quadOut'
+          easing: "quadOut",
         }
       )
       .call(() => {
-        resolve('');
+        resolve("");
       })
       .start();
   });
@@ -559,11 +589,11 @@ export function fadeIn(node: Node, duration = 0.4) {
 
 export function fadeOut(node: Node, duration = 0.4, isDestroy = true) {
   if (!node) {
-    console.warn('[fadeOut]节点为空');
+    console.warn("[fadeOut]节点为空");
     return Promise.resolve();
   }
   if (!node.isValid) {
-    console.warn('[fadeOut]节点已销毁', node.name);
+    console.warn("[fadeOut]节点已销毁", node.name);
     return Promise.resolve();
   }
   return new Promise((resolve, reject) => {
@@ -572,10 +602,10 @@ export function fadeOut(node: Node, duration = 0.4, isDestroy = true) {
       .to(
         duration,
         {
-          opacity: 0
+          opacity: 0,
         },
         {
-          easing: 'quadOut'
+          easing: "quadOut",
         }
       )
       .call(() => {
@@ -584,7 +614,7 @@ export function fadeOut(node: Node, duration = 0.4, isDestroy = true) {
         } else {
           node.active = false;
         }
-        resolve('');
+        resolve("");
       })
       .start();
   });
@@ -610,7 +640,7 @@ export function scaleIn(
 
 export function scaleInBounce(
   node: Node,
-  duration: number = 0.4,
+  duration: number = 0.5,
   overshoot: number = 1.2
 ) {
   return new Promise((resolve, reject) => {
@@ -879,21 +909,21 @@ export function setAnimationSpeed(node: Node, speed: number) {
 }
 
 /**
-   * 给节点绑定Button组件并设置点击事件
-   * @param options 配置选项
-   * @param options.node 要绑定Button的节点
-   * @param options.targetNode 事件处理代码组件所属的节点
-   * @param options.component 脚本组件
-   * @param options.handler 处理函数
-   * @param options.customEventData 自定义事件数据
-   * 调用方式：
-   * bindButtonWithHandler({
-        node: this.skillTreeItemList[0].itemNode,
-        targetNode: this.node,
-        component: this,
-        handler: this.handleStart
-      });
-   */
+ * 给节点绑定Button组件并设置点击事件
+ * @param options 配置选项
+ * @param options.node 要绑定Button的节点
+ * @param options.targetNode 事件处理代码组件所属的节点
+ * @param options.component 脚本组件
+ * @param options.handler 处理函数
+ * @param options.customEventData 自定义事件数据
+ * 调用方式：
+ * bindButtonWithHandler({
+      node: this.skillTreeItemList[0].itemNode,
+      targetNode: this.node,
+      component: this,
+      handler: this.handleStart
+    });
+ */
 export function bindButtonWithHandler({
   node,
   targetNode,
@@ -1054,21 +1084,21 @@ export async function playCardSelectAnimation(
 }
 
 /**
- * 延迟n帧执行回调
- * @param comp 依附的Component
+ * 延迟指定帧数后执行回调
+ * @param comp 组件实例
  * @param n 延迟帧数
  * @param cb 回调函数
  */
 export function delayFrames(comp: Component, n: number, cb?: () => void) {
   let count = 0;
-  function frameCallback() {
+  const update = () => {
     count++;
     if (count >= n) {
-      comp.unschedule(frameCallback);
-      cb && cb();
+      comp.unschedule(update);
+      cb?.();
     }
-  }
-  comp.schedule(frameCallback, 0);
+  };
+  comp.schedule(update, 0);
 }
 
 /**
@@ -1082,16 +1112,16 @@ export function delayFrames(comp: Component, n: number, cb?: () => void) {
 export function parseEventParams(eventData: string): Record<string, string> {
   const params: Record<string, string> = {};
 
-  if (!eventData || typeof eventData !== 'string') {
+  if (!eventData || typeof eventData !== "string") {
     return params;
   }
 
   // 按 & 分割参数
-  const pairs = eventData.split('&');
+  const pairs = eventData.split("&");
 
   for (const pair of pairs) {
     // 按 = 分割键值对
-    const [key, value] = pair.split('=');
+    const [key, value] = pair.split("=");
     if (key && value !== undefined) {
       params[key.trim()] = value.trim();
     }
@@ -1114,7 +1144,7 @@ export function getUrlParams(url?: string): Record<string, string> {
   try {
     // 如果没有传入 URL，使用当前页面 URL
     const targetUrl =
-      url || (typeof window !== 'undefined' ? window.location.href : '');
+      url || (typeof window !== "undefined" ? window.location.href : "");
 
     if (!targetUrl) {
       return params;
@@ -1126,7 +1156,7 @@ export function getUrlParams(url?: string): Record<string, string> {
       params[key] = value;
     });
   } catch (error) {
-    console.warn('[getUrlParams] 解析 URL 失败:', error);
+    console.warn("[getUrlParams] 解析 URL 失败:", error);
   }
 
   return params;
@@ -1144,4 +1174,18 @@ export function getUrlParams(url?: string): Record<string, string> {
 export function getUrlParamByKey(key: string, url?: string): string | null {
   const params = getUrlParams(url);
   return params[key] || null;
+}
+
+/**
+ * 判断节点是否可见
+ */
+export function isNodeVisible(node: Node): boolean {
+  let current = node;
+  while (current) {
+    if (!current.active) {
+      return false;
+    }
+    current = current.parent;
+  }
+  return true;
 }
