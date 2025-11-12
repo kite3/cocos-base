@@ -1,0 +1,7 @@
+---
+alwaysApply: true
+---
+1. 本项目是cocos creator 3.8小游戏代码。
+2. ts中涉及position计算的，都必须考虑坐标系变换，因为不同节点可能处于不同坐标系。
+3. ts中涉及向量的API（Vec3或Vec2），都必须考虑该API的函数是否会修改原对象，如果会修改，需要先clone()。
+4. assets\scripts\utils\common.ts 和 assets\scripts\utils\transform.ts 是工具函数集合的地方,记得抽空看,很多实现可以从里边直接拿函数。

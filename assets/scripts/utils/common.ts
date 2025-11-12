@@ -22,7 +22,8 @@ import {
   EventHandler,
   AnimationClip,
   Sprite,
-  Label
+  Label,
+  PhysicsSystem2D
 } from 'cc';
 import { playOneShot } from '../baseManager/AudioManager';
 import { AUDIO_ENUM } from '../global';
@@ -60,7 +61,7 @@ export function enableBtn(
     return;
   }
   if (!spriteNode) {
-    console.error('[disableBtn] spriteNode is null');
+    console.error('[enableBtn] spriteNode is null');
     return;
   }
   btnComponent.interactable = true;
@@ -105,6 +106,13 @@ export function typewriterEffect(
   });
 }
 
+/**
+ * 左右来回位移
+ * @param node
+ * @param distance
+ * @param duration
+ * @returns
+ */
 export function shakeMoveInfinite(
   node: Node,
   distance: number = 20,
@@ -145,20 +153,6 @@ export function handleGameOver() {
   console.warn('[game] over');
 }
 
-export function isWeb() {
-  return typeof window !== 'undefined' && !window['wx'];
-}
-
-export function isWebDevelopment() {
-  const isCocosEditor = location.href.indexOf('packages://scene/static') > -1;
-  console.log('isCocosEditor', isCocosEditor);
-  return isWeb() && (location.href.indexOf('localhost') > -1 || isCocosEditor);
-}
-
-export function isDebugMode() {
-  return isWeb() && location.href.indexOf('debug=1') > -1;
-}
-
 export const getContentSizeWithScale = (node: Node) => {
   let size = node.getComponent(UITransform).contentSize;
   return new Size(size.width * node.scale.x, size.height * node.scale.y);
@@ -170,75 +164,6 @@ export const getRandomInRange = (min, max) => {
   // 生成闭区间 [min, max] 内的随机整数
   return Math.floor(Math.random() * (max - min + 1)) + min;
 };
-
-/**
- * 显示手指引导
- * @param prefab 手指预制体
- * @param targetNode 目标节点
- * @returns 清理函数
- */
-export function commonShowFinger(
-  prefab: Prefab,
-  targetNode: Node,
-  offset: { x: number; y: number } = { x: 0, y: 0 },
-  parentNode: Node = find('Canvas')
-) {
-  const parent = parentNode;
-  const fingerNode = instantiate(prefab);
-
-  const targetWorldPos = targetNode.getWorldPosition();
-  const localPos = parent
-    .getComponent(UITransform)
-    .convertToNodeSpaceAR(targetWorldPos);
-
-  // 计算目标节点的边界
-  const size = getContentSizeWithScale(fingerNode);
-  const fingerWidth = size.width;
-  const fingerHeight = size.height;
-
-  // 计算最终位置（包含偏移）
-  const centerX = localPos.x;
-  const centerY = localPos.y;
-
-  // 右下角起始位置
-  const rightBottomX = centerX + fingerWidth / 1.5 + offset.x;
-  const rightBottomY = centerY - fingerHeight / 1.5 + offset.y;
-
-  // 小幅度左上移动的目标位置
-  const moveDistance = 30; // 移动距离，可以根据需要调整
-  const leftTopX = rightBottomX - moveDistance;
-  const leftTopY = rightBottomY + moveDistance;
-
-  // 设置手指初始位置（右下角）
-  fingerNode.setPosition(rightBottomX, rightBottomY, 0);
-  parent.addChild(fingerNode);
-
-  // 创建手指小幅度往左上角移动的动画
-  tween(fingerNode)
-    .to(
-      0.4,
-      { position: new Vec3(leftTopX, leftTopY, 0) },
-      {
-        easing: 'sineInOut'
-      }
-    )
-    .to(
-      0.4,
-      { position: new Vec3(rightBottomX, rightBottomY, 0) },
-      {
-        easing: 'sineInOut'
-      }
-    )
-    .union()
-    .repeatForever()
-    .start();
-
-  return () => {
-    if (fingerNode && fingerNode.isValid) {
-      fingerNode.destroy();
-    }
-  };
-}
 
 export function setContentSize(node: Node, size: Size) {
   node
@@ -258,14 +183,6 @@ export function hideNodes(nodes: Node[]) {
   nodes.forEach(node => {
     if (node) {
       node.active = false;
-    }
-  });
-}
-
-export function showNodes(nodes: Node[]) {
-  nodes.forEach(node => {
-    if (node) {
-      node.active = true;
     }
   });
 }
@@ -322,6 +239,7 @@ function createAnimationController({
         animationNode.active = false;
       }
       onComplete?.();
+      animation.off(Animation.EventType.FINISHED, onFinished);
     } else {
       animation.play();
       onInterval?.(playCount);
@@ -332,6 +250,7 @@ function createAnimationController({
 
   return {
     aniObject: animation,
+    aniNode: animationNode,
     destoryAniFn: () => {
       animationNode.destroy();
     }
@@ -345,7 +264,6 @@ export function playAnimationInNode({
   targetNode,
   loopNum = 1,
   onInterval,
-  onComplete,
   destoryType = 'destroy'
 }: {
   targetNode: Node;
@@ -354,13 +272,15 @@ export function playAnimationInNode({
   onComplete?: () => void;
   destoryType?: 'destroy' | 'hide' | 'none';
 }) {
-  targetNode.active = true;
-  return createAnimationController({
-    animationNode: targetNode,
-    loopNum,
-    onInterval,
-    onComplete,
-    destoryType
+  return new Promise<void>((resolve, reject) => {
+    targetNode.active = true;
+    return createAnimationController({
+      animationNode: targetNode,
+      loopNum,
+      onInterval,
+      onComplete: resolve,
+      destoryType
+    });
   });
 }
 
@@ -397,10 +317,6 @@ export function addAnimationToNode({
 
   // 设置位置和缩放（含朝向）
   node.setPosition(offset.x, offset.y, 0);
-  if (!scaleDirection) {
-    scaleDirection = node.scale.x;
-  }
-  node.setScale(node.scale.x * scaleDirection, node.scale.y, node.scale.z);
 
   return createAnimationController({
     animationNode: node,
@@ -415,7 +331,7 @@ function createSpineController({
   spineNode,
   aniName,
   loopNum = 1,
-  timeScale = 1,
+  timeScale,
   intervalTime = 0,
   onEvent,
   onIntervalStart,
@@ -477,7 +393,9 @@ function createSpineController({
 
   onIntervalStart?.(playCount);
   spine.setCompleteListener(onFinished);
-  spine.timeScale = timeScale;
+  if (timeScale !== undefined && timeScale !== null) {
+    spine.timeScale = timeScale;
+  }
   spine.setAnimation(0, playAniName, false);
 
   return {
@@ -495,7 +413,7 @@ function createSpineController({
 export function playSpineInNode({
   node,
   aniName,
-  timeScale = 1,
+  timeScale,
   intervalTime = 0,
   onEvent,
   onInterval,
@@ -538,10 +456,10 @@ export function addSpineToNode({
   targetNode,
   aniName,
   offset = { x: 0, y: 0 },
-  loopNum = -1,
+  loopNum = 1,
   scaleDirection = 1,
   destoryType = 'destroy',
-  timeScale = 1,
+  timeScale,
   onEvent,
   onInterval,
   onComplete
@@ -681,7 +599,7 @@ export function fadeIn(node: Node, duration = 0.4) {
   });
 }
 
-export function fadeOut(node: Node, duration = 0.4, isDestroy = true) {
+export function fadeOutNode(node: Node, duration = 0.4, isDestroy = true) {
   if (!node) {
     console.warn('[fadeOut]节点为空');
     return Promise.resolve();
@@ -855,100 +773,13 @@ export function findChildNodes(
 /**
  * 洗牌算法 - 支持混合类型数组
  */
-export function shuffleArray(array: any[]) {
-  for (let i = array.length - 1; i > 0; i--) {
+export function shuffleArray<T>(array: T[]) {
+  const shuffledArray = array.slice();
+  for (let i = shuffledArray.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
-    [array[i], array[j]] = [array[j], array[i]];
+    [shuffledArray[i], shuffledArray[j]] = [shuffledArray[j], shuffledArray[i]];
   }
-}
-
-export function progressiveMove({
-  nodeList,
-  intervalDelay = 0.2,
-  animationDuration = 0.3,
-  offsetX = 0,
-  offsetY = 0,
-  easing = 'quadOut',
-  isPlayAudio = true
-}: {
-  nodeList: Node[];
-  intervalDelay: number;
-  animationDuration: number;
-  offsetX: number;
-  offsetY: number;
-  easing?: TweenEasing;
-  isPlayAudio?: boolean;
-}) {
-  return new Promise(resolve => {
-    if (nodeList.length === 0) {
-      resolve('');
-      return;
-    }
-    hideNodes(nodeList);
-    let completedCount = 0;
-    const totalNodeLength = nodeList.length;
-
-    nodeList.forEach((node, index) => {
-      const delay = index * intervalDelay;
-      setTimeout(() => {
-        const startPos = new Vec3(
-          node.position.x + offsetX,
-          node.position.y + offsetY,
-          node.position.z
-        );
-        if (isPlayAudio) {
-          // playOneShot(AUDIO_ENUM.弹出);
-        }
-        movePointAToPointB(
-          node,
-          startPos,
-          node.position.clone(),
-          animationDuration,
-          easing
-        ).then(() => {
-          completedCount++;
-          if (completedCount === totalNodeLength) {
-            resolve('');
-          }
-        });
-      }, delay * 1000);
-    });
-  });
-}
-
-/**
- * 递进缩放
- * @param nodeList
- * @param intervalDelay
- * @param animationDuration
- * @returns
- */
-export function progressiveZoom(
-  nodeList: Node[],
-  intervalDelay: number = 0.2,
-  animationDuration: number = 0.3
-) {
-  return new Promise(resolve => {
-    if (nodeList.length === 0) {
-      resolve('');
-      return;
-    }
-    hideNodes(nodeList);
-    let completedCount = 0;
-    const totalNodeLength = nodeList.length;
-
-    nodeList.forEach((node, index) => {
-      const delay = index * intervalDelay;
-      setTimeout(() => {
-        scaleIn(node, animationDuration).then(() => {
-          completedCount++;
-          if (completedCount === totalNodeLength) {
-            resolve('');
-          }
-        });
-      }, delay * 1000);
-    });
-  });
+  return shuffledArray;
 }
 
 /**
@@ -1282,4 +1113,218 @@ export function isNodeVisible(node: Node): boolean {
     current = current.parent;
   }
   return true;
+}
+
+/**
+ * 计算节点列表的中心点
+ * @param nodes 节点列表
+ * @param getWorldPos 可选函数，用于获取节点的世界坐标（默认使用节点本身的getWorldPosition）
+ * @returns 中心点的世界坐标
+ */
+export function getNodesCenter(
+  nodes: Node[],
+  getWorldPos?: (node: Node) => Vec3
+): Vec3 {
+  if (nodes.length === 0) {
+    return new Vec3();
+  }
+
+  let centerX = 0;
+  let centerY = 0;
+
+  nodes.forEach(node => {
+    const worldPos = getWorldPos ? getWorldPos(node) : node.getWorldPosition();
+    centerX += worldPos.x;
+    centerY += worldPos.y;
+  });
+
+  centerX /= nodes.length;
+  centerY /= nodes.length;
+
+  return new Vec3(centerX, centerY, 0);
+}
+
+// 透明闪烁效果（用于告警）
+export async function fadeFlash(
+  node: Node,
+  count: number = 2,
+  duration = 0.5,
+  delay = 0.4
+) {
+  for (let i = 0; i < count; i++) {
+    await fadeIn(node, duration);
+    await fadeOutNode(node, duration, false);
+    await sleep(delay);
+  }
+}
+
+// 切换Spine动作，避免相同动作重复切换
+export async function updateSpineAction(
+  spine: sp.Skeleton,
+  animName: string,
+  isLoop: boolean = true
+) {
+  if (!spine) {
+    console.error(`[切换动作] spine不存在`);
+    return;
+  }
+  if (!(spine instanceof sp.Skeleton)) {
+    console.error(`[切换动作] spine不是sp.Skeleton类型`);
+    return;
+  }
+  if (spine.animation !== animName) {
+    console.warn(
+      `[${spine.node.name}切换动作] ${spine.animation} -> ${animName}`
+    );
+    spine.setAnimation(0, animName, isLoop);
+  }
+}
+
+/**
+ * 躲避动作（后退，伴随透明度变化和缩放效果）
+ * @param node 要执行躲避的节点
+ * @param avoidDistance 后退距离，默认160
+ * @param avoidDuration 后退时间，默认0.28
+ * @param scaleNode 可选，用于缩放效果的节点（默认不使用）
+ */
+export async function avoidAction(
+  node: Node,
+  avoidDistance: number = 160,
+  avoidDuration: number = 0.28,
+  scaleNode?: Node
+): Promise<void> {
+  const uiOpacity = getUIOpacity(node);
+
+  const currentPos = node.position.clone();
+  const targetPos = new Vec3(
+    currentPos.x - avoidDistance,
+    currentPos.y,
+    currentPos.z
+  );
+
+  tween(node).to(avoidDuration, { position: targetPos }).start();
+
+  tween(uiOpacity)
+    .to(avoidDuration * 0.3, { opacity: 100 })
+    .delay(avoidDuration * 0.4)
+    .to(avoidDuration * 0.3, { opacity: 255 })
+    .start();
+
+  if (scaleNode) {
+    const sprite = scaleNode.getComponent(Sprite);
+    if (sprite) {
+      tween(scaleNode)
+        .to(avoidDuration * 0.3, { scale: new Vec3(0.95, 0.95, 1) })
+        .delay(avoidDuration * 0.4)
+        .to(avoidDuration * 0.3, { scale: new Vec3(1, 1, 1) })
+        .start();
+    }
+  }
+
+  await sleep(avoidDuration);
+}
+
+/**
+ * 计算摇杆移动方向的角度（以度为单位）
+ * @param moveDir 摇杆移动方向向量（归一化）
+ * @returns 返回角度值（0-360度），0度为右方向，90度为上方向，180度为左方向，270度为下方向
+ * @example
+ * // 使用示例
+ * import { getJoystickMoveAngle } from '../utils/common';
+ *
+ * const angle = getJoystickMoveAngle(moveDir);
+ * // 判断是否在垂直向上±15度范围内
+ * const isVerticalUp = moveDir.y > 0 && angle >= 75 && angle <= 105;
+ */
+export function getJoystickMoveAngle(moveDir: Vec2): number {
+  return Math.atan2(moveDir.y, moveDir.x) * (180 / Math.PI);
+}
+
+/**
+ * 检查移动方向的碰撞状态
+ * @param playerNode 主角节点
+ * @param moveDir 移动方向向量（归一化）
+ * @param ObstacleComponent 障碍物组件类（如 Aside），用于过滤碰撞结果
+ * @returns 返回碰撞状态对象 { isLeft: boolean, isRight: boolean, isTop: boolean, isBottom: boolean }
+ *
+ * @example
+ * // 使用示例
+ * import { Aside } from '../entity/Aside';
+ * import { checkCollisionDirection } from '../utils/common';
+ *
+ * const collisionState = checkCollisionDirection(this.node, moveDir, Aside);
+ * // 检查右侧碰撞，阻止向右移动
+ * if (collisionState.isRight && moveDir.x > 0) {
+ *   newX = curPos.x;
+ * }
+ * // 检查左侧碰撞，阻止向左移动
+ * if (collisionState.isLeft && moveDir.x < 0) {
+ *   newX = curPos.x;
+ * }
+ * // 检查上方碰撞，阻止向上移动
+ * if (collisionState.isTop && moveDir.y > 0) {
+ *   newY = curPos.y;
+ * }
+ * // 检查下方碰撞，阻止向下移动
+ * if (collisionState.isBottom && moveDir.y < 0) {
+ *   newY = curPos.y;
+ * }
+ */
+export function checkCollisionDirection({
+  playerNode,
+  moveDir,
+  ObstacleComponent,
+  offset = 10
+}: {
+  playerNode: Node;
+  moveDir: Vec2;
+  ObstacleComponent: typeof Component;
+  offset?: number;
+}) {
+  let collisionState = {
+    isLeft: false,
+    isRight: false,
+    isTop: false,
+    isBottom: false
+  };
+
+  const playerPos = playerNode.getWorldPosition();
+
+  if (Math.abs(moveDir.x) > 0 || Math.abs(moveDir.y) > 0) {
+    const rayDir = new Vec2(
+      playerPos.x +
+        (Math.abs(moveDir.x) > 0
+          ? moveDir.x + (moveDir.x > 0 ? offset : -offset)
+          : 0),
+      playerPos.y +
+        (Math.abs(moveDir.y) > 0
+          ? moveDir.y + (moveDir.y > 0 ? offset : -offset)
+          : 0)
+    );
+    const result = PhysicsSystem2D.instance
+      .testPoint(rayDir)
+      .filter(item => item.node.getComponent(ObstacleComponent));
+    if (result.length > 0) {
+      console.log('-->触发边界限制', result.length);
+    }
+
+    if (result.length > 0) {
+      result.forEach(item => {
+        if (Math.abs(moveDir.x) > 0) {
+          collisionState.isRight = collisionState.isRight || moveDir.x > 0;
+          collisionState.isLeft = collisionState.isLeft || moveDir.x < 0;
+        }
+        if (Math.abs(moveDir.y) > 0) {
+          collisionState.isTop = collisionState.isTop || moveDir.y > 0;
+          collisionState.isBottom = collisionState.isBottom || moveDir.y < 0;
+        }
+      });
+    } else {
+      console.log('-->没有触发边界限制2');
+    }
+  } else {
+    console.log('-->没有触发边界限制1');
+  }
+
+  return collisionState;
 }
