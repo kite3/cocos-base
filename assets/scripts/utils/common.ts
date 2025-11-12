@@ -23,15 +23,15 @@ import {
   AnimationClip,
   Sprite,
   Label,
-  PhysicsSystem2D
-} from 'cc';
-import { playOneShot } from '../baseManager/AudioManager';
-import { AUDIO_ENUM } from '../global';
+  PhysicsSystem2D,
+} from "cc";
+import { playOneShot } from "../baseManager/AudioManager";
+import { AUDIO_ENUM } from "../global";
 
 declare const wx: any;
 
 export function sleep(seconds: number): Promise<void> {
-  return new Promise(resolve => {
+  return new Promise((resolve) => {
     setTimeout(resolve, seconds * 1000);
   });
 }
@@ -41,11 +41,11 @@ export function disableBtn(
   spriteNode: Node = btnComponent.node
 ) {
   if (!btnComponent) {
-    console.error('[disableBtn] btnComponent is null');
+    console.error("[disableBtn] btnComponent is null");
     return;
   }
   if (!spriteNode) {
-    console.error('[disableBtn] spriteNode is null');
+    console.error("[disableBtn] spriteNode is null");
     return;
   }
   btnComponent.interactable = false;
@@ -57,83 +57,15 @@ export function enableBtn(
   spriteNode: Node = btnComponent.node
 ) {
   if (!btnComponent) {
-    console.error('[enableBtn] btnComponent is null');
+    console.error("[enableBtn] btnComponent is null");
     return;
   }
   if (!spriteNode) {
-    console.error('[enableBtn] spriteNode is null');
+    console.error("[enableBtn] spriteNode is null");
     return;
   }
   btnComponent.interactable = true;
   spriteNode.getComponent(Sprite).grayscale = false;
-}
-
-export function typewriterEffect(
-  label: Label,
-  speed: number = 0.05
-): Promise<void> {
-  return new Promise(resolve => {
-    const uiTransform = label.node.getComponent(UITransform);
-    const originalAnchorX = uiTransform.anchorX;
-    const originalPosition = label.node.position.clone();
-    const text = label.string;
-
-    label.string = '';
-    uiTransform.anchorX = 0;
-
-    const offsetX =
-      (uiTransform.anchorX - originalAnchorX) * uiTransform.contentSize.width;
-    label.node.setPosition(
-      originalPosition.x + offsetX,
-      originalPosition.y,
-      originalPosition.z
-    );
-
-    let index = 0;
-
-    setTimeout(() => {
-      fadeIn(label.node, 0.01);
-      const typeInterval = setInterval(() => {
-        if (index < text.length) {
-          label.string += text[index];
-          index++;
-        } else {
-          clearInterval(typeInterval);
-          resolve();
-        }
-      }, speed * 1000);
-    });
-  });
-}
-
-/**
- * 左右来回位移
- * @param node
- * @param distance
- * @param duration
- * @returns
- */
-export function shakeMoveInfinite(
-  node: Node,
-  distance: number = 20,
-  duration: number = 0.5
-): () => void {
-  const originalX = node.position.x;
-
-  const shakeTween = tween(node)
-    .to(duration, {
-      position: new Vec3(originalX + distance, node.position.y, node.position.z)
-    })
-    .to(duration, {
-      position: new Vec3(originalX - distance, node.position.y, node.position.z)
-    })
-    .union()
-    .repeatForever()
-    .start();
-
-  return () => {
-    shakeTween.stop();
-  };
 }
 
 export function handleGameOver() {
@@ -141,16 +73,16 @@ export function handleGameOver() {
     wx?.notifyMiniProgramPlayableStatus?.({
       isEnd: true,
       success: () => {
-        console.log('[wx] notifyMiniProgramPlayableStatus成功回调被触发');
+        console.log("[wx] notifyMiniProgramPlayableStatus成功回调被触发");
       },
-      fail: err => {
-        console.log('[wx] notifyMiniProgramPlayableStatus失败回调被触发:', err);
-      }
+      fail: (err) => {
+        console.log("[wx] notifyMiniProgramPlayableStatus失败回调被触发:", err);
+      },
     });
   } catch (err) {
-    console.log('[wx] notifyMiniProgramPlayableStatus失败:', err);
+    console.log("[wx] notifyMiniProgramPlayableStatus失败:", err);
   }
-  console.warn('[game] over');
+  console.warn("[game] over");
 }
 
 export const getContentSizeWithScale = (node: Node) => {
@@ -180,7 +112,7 @@ export function getUIOpacity(node: Node): UIOpacity {
 }
 
 export function hideNodes(nodes: Node[]) {
-  nodes.forEach(node => {
+  nodes.forEach((node) => {
     if (node) {
       node.active = false;
     }
@@ -195,7 +127,7 @@ export function hideNodes(nodes: Node[]) {
 export function getSpineAnimationNames(skeleton: sp.Skeleton): string[] {
   const enumMap = skeleton.skeletonData.getAnimsEnum?.();
   return enumMap
-    ? Object.keys(enumMap).filter(v => v.indexOf('None') === -1)
+    ? Object.keys(enumMap).filter((v) => v.indexOf("None") === -1)
     : [];
 }
 
@@ -204,17 +136,17 @@ function createAnimationController({
   loopNum = 1,
   onInterval,
   onComplete,
-  destoryType = 'destroy'
+  destoryType = "destroy",
 }: {
   animationNode: Node;
   loopNum?: number;
   onInterval?: (playCount: number) => void;
   onComplete?: () => void;
-  destoryType?: 'destroy' | 'hide' | 'none';
+  destoryType?: "destroy" | "hide" | "none";
 }) {
   const animation = animationNode.getComponent(Animation);
   if (!animation) {
-    console.error('没有找到animation组件');
+    console.error("没有找到animation组件");
     return;
   }
 
@@ -225,7 +157,7 @@ function createAnimationController({
       state.wrapMode = AnimationClip.WrapMode.Normal;
       state.repeatCount = 1;
     } else {
-      console.warn('[createAnimationController]没有找到动画状态');
+      console.warn("[createAnimationController]没有找到动画状态");
     }
   }
 
@@ -233,9 +165,9 @@ function createAnimationController({
   const onFinished = () => {
     playCount++;
     if (playCount >= loopNum && loopNum !== -1) {
-      if (destoryType === 'destroy') {
+      if (destoryType === "destroy") {
         animationNode.destroy();
-      } else if (destoryType === 'hide') {
+      } else if (destoryType === "hide") {
         animationNode.active = false;
       }
       onComplete?.();
@@ -253,7 +185,7 @@ function createAnimationController({
     aniNode: animationNode,
     destoryAniFn: () => {
       animationNode.destroy();
-    }
+    },
   };
 }
 
@@ -264,13 +196,13 @@ export function playAnimationInNode({
   targetNode,
   loopNum = 1,
   onInterval,
-  destoryType = 'destroy'
+  destoryType = "destroy",
 }: {
   targetNode: Node;
   loopNum?: number;
   onInterval?: (playCount: number) => void;
   onComplete?: () => void;
-  destoryType?: 'destroy' | 'hide' | 'none';
+  destoryType?: "destroy" | "hide" | "none";
 }) {
   return new Promise<void>((resolve, reject) => {
     targetNode.active = true;
@@ -279,7 +211,7 @@ export function playAnimationInNode({
       loopNum,
       onInterval,
       onComplete: resolve,
-      destoryType
+      destoryType,
     });
   });
 }
@@ -293,16 +225,16 @@ export function addAnimationToNode({
   offset = { x: 0, y: 0 },
   loopNum = 1,
   scaleDirection,
-  destoryType = 'destroy',
+  destoryType = "destroy",
   onInterval,
-  onComplete
+  onComplete,
 }: {
   prefab: Prefab;
   targetNode: Node;
   offset?: { x: number; y: number };
   loopNum?: number;
   scaleDirection?: number;
-  destoryType?: 'destroy' | 'hide' | 'none';
+  destoryType?: "destroy" | "hide" | "none";
   onInterval?: (playCount: number) => void;
   onComplete?: () => void;
 }) {
@@ -323,7 +255,7 @@ export function addAnimationToNode({
     loopNum,
     onInterval,
     onComplete,
-    destoryType
+    destoryType,
   });
 }
 
@@ -337,7 +269,7 @@ function createSpineController({
   onIntervalStart,
   onInterval,
   onComplete,
-  destoryType = 'destroy'
+  destoryType = "destroy",
 }: {
   spineNode: Node;
   aniName?: string;
@@ -348,11 +280,11 @@ function createSpineController({
   onIntervalStart?: (eventName: number) => void;
   onInterval?: (playCount: number) => void;
   onComplete?: () => void;
-  destoryType?: 'destroy' | 'hide' | 'none';
+  destoryType?: "destroy" | "hide" | "none";
 }) {
   const spine = spineNode.getComponent(sp.Skeleton);
   if (!spine) {
-    console.error('没有找到spine组件');
+    console.error("没有找到spine组件");
     return;
   }
 
@@ -373,9 +305,9 @@ function createSpineController({
     spine.setCompleteListener(null);
     playCount++;
     if (playCount >= loopNum && loopNum !== -1) {
-      if (destoryType === 'destroy') {
+      if (destoryType === "destroy") {
         spineNode.destroy();
-      } else if (destoryType === 'hide') {
+      } else if (destoryType === "hide") {
         spineNode.active = false;
       }
       onInterval?.(playCount);
@@ -403,7 +335,7 @@ function createSpineController({
     aniNode: spineNode,
     destoryAniFn: () => {
       spineNode.destroy();
-    }
+    },
   };
 }
 
@@ -419,8 +351,8 @@ export function playSpineInNode({
   onInterval,
   onIntervalStart,
   onComplete,
-  destoryType = 'destroy',
-  loopNum = 1
+  destoryType = "destroy",
+  loopNum = 1,
 }: {
   node: Node;
   aniName: string;
@@ -430,7 +362,7 @@ export function playSpineInNode({
   onInterval?: (playCount: number) => void;
   onIntervalStart?: (playCount: number) => void;
   onComplete?: () => void;
-  destoryType?: 'destroy' | 'hide' | 'none';
+  destoryType?: "destroy" | "hide" | "none";
   loopNum?: number;
 }) {
   node.active = true;
@@ -444,7 +376,7 @@ export function playSpineInNode({
     onIntervalStart,
     onInterval,
     onComplete,
-    destoryType
+    destoryType,
   });
 }
 
@@ -458,11 +390,11 @@ export function addSpineToNode({
   offset = { x: 0, y: 0 },
   loopNum = 1,
   scaleDirection = 1,
-  destoryType = 'destroy',
+  destoryType = "destroy",
   timeScale,
   onEvent,
   onInterval,
-  onComplete
+  onComplete,
 }: {
   prefab: Prefab;
   targetNode: Node;
@@ -474,7 +406,7 @@ export function addSpineToNode({
   onEvent?: (eventName: string) => void;
   onInterval?: (playCount: number) => void;
   onComplete?: () => void;
-  destoryType?: 'destroy' | 'hide' | 'none';
+  destoryType?: "destroy" | "hide" | "none";
 }) {
   // 去除targetNode的layout组件
   const layout = targetNode.getComponent(Layout);
@@ -497,7 +429,7 @@ export function addSpineToNode({
     onEvent,
     onInterval,
     onComplete,
-    destoryType
+    destoryType,
   });
 }
 
@@ -507,22 +439,22 @@ export function addSpineToNode({
  */
 export function getLiuhaiHeight() {
   const visibleSize = view.getVisibleSize();
-  console.log('visibleSize', visibleSize);
+  console.log("visibleSize", visibleSize);
 
   const safeArea = sys.getSafeAreaRect();
-  console.log('safeArea', safeArea);
+  console.log("safeArea", safeArea);
 
   const liuhaiHeight = visibleSize.height - safeArea.height - safeArea.y;
-  console.log('刘海高度', liuhaiHeight);
+  console.log("刘海高度", liuhaiHeight);
 
   const h = liuhaiHeight / (720 / 375);
-  console.log('缩放比换算后的刘海高度', h);
+  console.log("缩放比换算后的刘海高度", h);
 
   let ph = h > 30 ? h + 20 : 0;
-  console.log('修正后的刘海高度1', ph);
+  console.log("修正后的刘海高度1", ph);
 
   ph = ph > 80 ? 80 : ph;
-  console.log('修正后的刘海高度2', ph);
+  console.log("修正后的刘海高度2", ph);
 
   return ph;
 }
@@ -539,7 +471,7 @@ export function updateWidgetWithLiuhai(node: Node, offsetY: number = 0) {
     widget.top = widget.top + statusBarHeight + offsetY;
     widget.updateAlignment();
   } else {
-    console.error('[updateWidgetWithLiuhai]没有找到widget组件');
+    console.error("[updateWidgetWithLiuhai]没有找到widget组件");
   }
 }
 
@@ -556,7 +488,7 @@ export function scaleWithBottomAlign(node: Node, scale: number | Vec3) {
 
   const oldScale = node.scale;
   const newScale =
-    typeof scale === 'number' ? new Vec3(scale, scale, scale) : scale;
+    typeof scale === "number" ? new Vec3(scale, scale, scale) : scale;
 
   const deltaScaleY = newScale.y - oldScale.y;
   // 计算缩放前后的偏移量
@@ -566,155 +498,6 @@ export function scaleWithBottomAlign(node: Node, scale: number | Vec3) {
   node.setScale(newScale);
   node.setPosition(node.position.x, node.position.y + offsetY, node.position.z);
 }
-
-export function fadeIn(node: Node, duration = 0.4) {
-  return new Promise((resolve, reject) => {
-    if (!node) {
-      console.warn('[fadeIn]节点为空');
-      resolve('');
-      return;
-    }
-    if (!node.isValid) {
-      console.warn('[fadeIn]节点已销毁', node.name);
-      resolve('');
-      return;
-    }
-    node.active = true;
-    const uiOpacity = getUIOpacity(node);
-    uiOpacity.opacity = 0;
-    tween(uiOpacity)
-      .to(
-        duration,
-        {
-          opacity: 255
-        },
-        {
-          easing: 'quadOut'
-        }
-      )
-      .call(() => {
-        resolve('');
-      })
-      .start();
-  });
-}
-
-export function fadeOutNode(node: Node, duration = 0.4, isDestroy = true) {
-  if (!node) {
-    console.warn('[fadeOut]节点为空');
-    return Promise.resolve();
-  }
-  if (!node.isValid) {
-    console.warn('[fadeOut]节点已销毁', node.name);
-    return Promise.resolve();
-  }
-  return new Promise((resolve, reject) => {
-    const uiOpacity = getUIOpacity(node);
-    tween(uiOpacity)
-      .to(
-        duration,
-        {
-          opacity: 0
-        },
-        {
-          easing: 'quadOut'
-        }
-      )
-      .call(() => {
-        if (isDestroy) {
-          node.destroy();
-        } else {
-          node.active = false;
-        }
-        resolve('');
-      })
-      .start();
-  });
-}
-
-export function scaleIn(
-  node: Node,
-  duration: number = 0.4,
-  easing: TweenEasing = 'quadOut'
-) {
-  return new Promise((resolve, reject) => {
-    node.active = true;
-    const originScale = node.scale.clone();
-    node.setScale(0, 0, 1);
-    tween(node)
-      .to(duration, { scale: originScale }, { easing })
-      .call(() => {
-        resolve('');
-      })
-      .start();
-  });
-}
-
-export function scaleInBounce(
-  node: Node,
-  duration: number = 0.5,
-  overshoot: number = 1.2
-) {
-  return new Promise((resolve, reject) => {
-    node.active = true;
-    const originScale = node.scale.clone();
-    const overshootScale = new Vec3(
-      originScale.x * overshoot,
-      originScale.y * overshoot,
-      originScale.z
-    );
-
-    node.setScale(0, 0, 0);
-
-    tween(node)
-      .to(duration * 0.6, { scale: overshootScale }, { easing: 'quadOut' })
-      .to(duration * 0.4, { scale: originScale }, { easing: 'backOut' })
-      .call(() => {
-        resolve('');
-      })
-      .start();
-  });
-}
-
-export const movePointAToPointB = (
-  node: Node,
-  startPos: Vec3,
-  endPos: Vec3,
-  duration = 0.3,
-  easing: TweenEasing = 'sineInOut'
-) => {
-  return new Promise(resolve => {
-    node.active = true;
-    node.setPosition(startPos);
-
-    tween(node)
-      .to(duration, { position: endPos }, { easing })
-      .call(() => {
-        resolve('');
-      })
-      .start();
-  });
-};
-
-export const moveNodeAToNodeB = (
-  startNode: Node,
-  endNode: Node,
-  duration = 0.5,
-  easing: TweenEasing = 'sineInOut'
-) => {
-  return new Promise(resolve => {
-    startNode.active = true;
-    const endPos = startNode.parent
-      .getComponent(UITransform)
-      .convertToNodeSpaceAR(endNode.worldPosition);
-    tween(startNode)
-      .to(duration, { position: endPos }, { easing })
-      .call(() => {
-        resolve('');
-      })
-      .start();
-  });
-};
 
 export function getPrevNode(node: Node) {
   const currentIndex = node.parent.children.indexOf(node);
@@ -802,7 +585,7 @@ export function setAnchorPoint(
 
 export function addNodeToParent(node: Node, parent?: Node) {
   if (!parent) {
-    parent = find('Canvas');
+    parent = find("Canvas");
   }
   const localPos = parent
     .getComponent(UITransform)
@@ -855,7 +638,7 @@ export function bindButtonWithHandler({
   component,
   handler,
   customEventData,
-  scaleOptions
+  scaleOptions,
 }: {
   node: Node;
   targetNode: Node;
@@ -868,7 +651,7 @@ export function bindButtonWithHandler({
   };
 }) {
   if (!node) {
-    console.warn('[bindButtonWithHandler] 节点不存在');
+    console.warn("[bindButtonWithHandler] 节点不存在");
     return;
   }
 
@@ -889,123 +672,6 @@ export function bindButtonWithHandler({
   button.duration = scaleOptions?.duration ?? 0.1;
 
   button.clickEvents.push(clickEventHandler);
-}
-
-/**
- * 钟摆式摇晃效果 - 围绕锚点进行旋转式摇晃
- * @param node 要摇晃的节点
- * @param shakeAngle 摇晃角度（度），默认15度
- * @param shakeDuration 单次摇晃时长（秒），默认0.2秒
- * @param shakeCount 摇晃次数（左右摇晃的总次数），默认2次
- * @param easing 缓动类型，默认'sineInOut'
- * @returns Promise，摇晃完成时resolve
- */
-export function shakeRotation(
-  node: Node,
-  shakeAngle: number = 15,
-  shakeDuration: number = 0.2,
-  shakeCount: number = 2,
-  easing: TweenEasing = 'sineInOut'
-): Promise<void> {
-  return new Promise(resolve => {
-    if (!node || !node.isValid) {
-      console.warn('[shakeRotation] 节点无效');
-      resolve();
-      return;
-    }
-
-    // 记录原始旋转角度
-    const originalRotation = node.angle;
-
-    // 创建扇形摇晃动画序列
-    let shakeSequence = tween(node);
-
-    for (let i = 0; i < shakeCount; i++) {
-      // 向右旋转摇晃
-      shakeSequence = shakeSequence.to(
-        shakeDuration,
-        {
-          angle: originalRotation + shakeAngle
-        },
-        { easing }
-      );
-
-      // 向左旋转摇晃
-      shakeSequence = shakeSequence.to(
-        shakeDuration,
-        {
-          angle: originalRotation - shakeAngle
-        },
-        { easing }
-      );
-    }
-
-    // 最后回到原始角度
-    shakeSequence = shakeSequence
-      .to(
-        shakeDuration,
-        {
-          angle: originalRotation
-        },
-        { easing }
-      )
-      .call(() => {
-        resolve();
-      });
-
-    // 开始摇晃动画
-    shakeSequence.start();
-  });
-}
-
-/**
- * 点击弹窗卡片，选中卡片最终放大，未选中卡片最终缩小
- * 卡片Button组件需设置transition=NONE
- * @param selectedCard 选中卡片，通过event.target获取
- */
-export async function playCardSelectAnimation(
-  selectedCard,
-  minScale = 0.8,
-  maxScale = 1.2,
-  duration = 0.25
-): Promise<void> {
-  const cardA = selectedCard;
-  const cardB = selectedCard.parent.children.find(
-    child => child !== selectedCard
-  );
-
-  // 避免重复点击
-  cardA.getComponent(Button).interactable = false;
-  cardB.getComponent(Button).interactable = false;
-
-  if (cardA && cardB) {
-    const originalScaleA = cardA.getScale().clone();
-    const parsedMinScale = originalScaleA.x * minScale;
-    const parsedMaxScale = originalScaleA.x * maxScale;
-
-    await new Promise(resolve => {
-      tween(cardA)
-        .to(duration, { scale: new Vec3(parsedMinScale, parsedMinScale, 1) })
-        .call(() => {
-          tween(cardA)
-            .to(duration, {
-              scale: new Vec3(parsedMaxScale, parsedMaxScale, 1)
-            })
-            .start();
-
-          cardB.getComponent(Sprite).grayscale = true;
-          tween(cardB)
-            .to(duration, {
-              scale: new Vec3(parsedMinScale, parsedMinScale, 1)
-            })
-            .call(() => {
-              resolve(null);
-            })
-            .start();
-        })
-        .start();
-    });
-  }
 }
 
 /**
@@ -1037,16 +703,16 @@ export function delayFrames(comp: Component, n: number, cb?: () => void) {
 export function parseEventParams(eventData: string): Record<string, string> {
   const params: Record<string, string> = {};
 
-  if (!eventData || typeof eventData !== 'string') {
+  if (!eventData || typeof eventData !== "string") {
     return params;
   }
 
   // 按 & 分割参数
-  const pairs = eventData.split('&');
+  const pairs = eventData.split("&");
 
   for (const pair of pairs) {
     // 按 = 分割键值对
-    const [key, value] = pair.split('=');
+    const [key, value] = pair.split("=");
     if (key && value !== undefined) {
       params[key.trim()] = value.trim();
     }
@@ -1069,7 +735,7 @@ export function getUrlParams(url?: string): Record<string, string> {
   try {
     // 如果没有传入 URL，使用当前页面 URL
     const targetUrl =
-      url || (typeof window !== 'undefined' ? window.location.href : '');
+      url || (typeof window !== "undefined" ? window.location.href : "");
 
     if (!targetUrl) {
       return params;
@@ -1081,7 +747,7 @@ export function getUrlParams(url?: string): Record<string, string> {
       params[key] = value;
     });
   } catch (error) {
-    console.warn('[getUrlParams] 解析 URL 失败:', error);
+    console.warn("[getUrlParams] 解析 URL 失败:", error);
   }
 
   return params;
@@ -1132,7 +798,7 @@ export function getNodesCenter(
   let centerX = 0;
   let centerY = 0;
 
-  nodes.forEach(node => {
+  nodes.forEach((node) => {
     const worldPos = getWorldPos ? getWorldPos(node) : node.getWorldPosition();
     centerX += worldPos.x;
     centerY += worldPos.y;
@@ -1142,20 +808,6 @@ export function getNodesCenter(
   centerY /= nodes.length;
 
   return new Vec3(centerX, centerY, 0);
-}
-
-// 透明闪烁效果（用于告警）
-export async function fadeFlash(
-  node: Node,
-  count: number = 2,
-  duration = 0.5,
-  delay = 0.4
-) {
-  for (let i = 0; i < count; i++) {
-    await fadeIn(node, duration);
-    await fadeOutNode(node, duration, false);
-    await sleep(delay);
-  }
 }
 
 // 切换Spine动作，避免相同动作重复切换
@@ -1178,50 +830,6 @@ export async function updateSpineAction(
     );
     spine.setAnimation(0, animName, isLoop);
   }
-}
-
-/**
- * 躲避动作（后退，伴随透明度变化和缩放效果）
- * @param node 要执行躲避的节点
- * @param avoidDistance 后退距离，默认160
- * @param avoidDuration 后退时间，默认0.28
- * @param scaleNode 可选，用于缩放效果的节点（默认不使用）
- */
-export async function avoidAction(
-  node: Node,
-  avoidDistance: number = 160,
-  avoidDuration: number = 0.28,
-  scaleNode?: Node
-): Promise<void> {
-  const uiOpacity = getUIOpacity(node);
-
-  const currentPos = node.position.clone();
-  const targetPos = new Vec3(
-    currentPos.x - avoidDistance,
-    currentPos.y,
-    currentPos.z
-  );
-
-  tween(node).to(avoidDuration, { position: targetPos }).start();
-
-  tween(uiOpacity)
-    .to(avoidDuration * 0.3, { opacity: 100 })
-    .delay(avoidDuration * 0.4)
-    .to(avoidDuration * 0.3, { opacity: 255 })
-    .start();
-
-  if (scaleNode) {
-    const sprite = scaleNode.getComponent(Sprite);
-    if (sprite) {
-      tween(scaleNode)
-        .to(avoidDuration * 0.3, { scale: new Vec3(0.95, 0.95, 1) })
-        .delay(avoidDuration * 0.4)
-        .to(avoidDuration * 0.3, { scale: new Vec3(1, 1, 1) })
-        .start();
-    }
-  }
-
-  await sleep(avoidDuration);
 }
 
 /**
@@ -1274,7 +882,7 @@ export function checkCollisionDirection({
   playerNode,
   moveDir,
   ObstacleComponent,
-  offset = 10
+  offset = 10,
 }: {
   playerNode: Node;
   moveDir: Vec2;
@@ -1285,7 +893,7 @@ export function checkCollisionDirection({
     isLeft: false,
     isRight: false,
     isTop: false,
-    isBottom: false
+    isBottom: false,
   };
 
   const playerPos = playerNode.getWorldPosition();
@@ -1303,13 +911,13 @@ export function checkCollisionDirection({
     );
     const result = PhysicsSystem2D.instance
       .testPoint(rayDir)
-      .filter(item => item.node.getComponent(ObstacleComponent));
+      .filter((item) => item.node.getComponent(ObstacleComponent));
     if (result.length > 0) {
-      console.log('-->触发边界限制', result.length);
+      console.log("-->触发边界限制", result.length);
     }
 
     if (result.length > 0) {
-      result.forEach(item => {
+      result.forEach((item) => {
         if (Math.abs(moveDir.x) > 0) {
           collisionState.isRight = collisionState.isRight || moveDir.x > 0;
           collisionState.isLeft = collisionState.isLeft || moveDir.x < 0;
@@ -1320,10 +928,10 @@ export function checkCollisionDirection({
         }
       });
     } else {
-      console.log('-->没有触发边界限制2');
+      console.log("-->没有触发边界限制2");
     }
   } else {
-    console.log('-->没有触发边界限制1');
+    console.log("-->没有触发边界限制1");
   }
 
   return collisionState;
