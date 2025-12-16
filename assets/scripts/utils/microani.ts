@@ -596,3 +596,71 @@ export function shakeMoveInfinite(
     shakeTween.stop();
   };
 }
+
+/**
+ * Label数值过渡动画，从当前数值平滑过渡到目标数值
+ * @param label Label组件
+ * @param targetValue 目标数值
+ * @param initValue 初始数值（如果不提供，则从label.string解析）
+ * @param duration 动画时长
+ * @param easing 动画缓动函数
+ * @param formatFn 格式化函数，用于自定义数值显示格式（默认取整）
+ * @returns
+ */
+export function transitionLabelValue({
+  label,
+  targetValue,
+  initValue,
+  duration = 0.5,
+  easing = 'linear',
+  formatFn
+}: {
+  label: Label;
+  targetValue: number;
+  initValue?: number;
+  duration?: number;
+  easing?: TweenEasing;
+  formatFn?: (value: number) => string;
+}): Promise<void> {
+  return new Promise(resolve => {
+    if (!label || !label.isValid) {
+      resolve();
+      return;
+    }
+
+    // 如果没有提供初始值，尝试从label.string解析
+    let startValue = initValue;
+    if (startValue === undefined) {
+      const currentString = label.string || '0';
+      const parsed = parseFloat(currentString.replace(/[^\d.-]/g, ''));
+      startValue = isNaN(parsed) ? 0 : parsed;
+    }
+
+    // 默认格式化函数：取整
+    const defaultFormatFn = (value: number) => Math.floor(value).toString();
+    const format = formatFn || defaultFormatFn;
+
+    const valueObj = { value: startValue };
+    tween(valueObj)
+      .to(
+        duration,
+        { value: targetValue },
+        {
+          easing,
+          onUpdate: () => {
+            if (label && label.isValid) {
+              label.string = format(valueObj.value);
+            }
+          }
+        }
+      )
+      .call(() => {
+        // 确保最终值准确
+        if (label && label.isValid) {
+          label.string = format(targetValue);
+        }
+        resolve();
+      })
+      .start();
+  });
+}

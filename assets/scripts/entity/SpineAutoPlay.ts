@@ -62,8 +62,6 @@ export class SpineAutoPlay extends Component {
     this.node.setPosition(this._initPosition);
     this.node.setScale(this._initScale);
 
-    console.log('SpineAutoPlay', this.node.name);
-
     const spine = this.node.getComponent(sp.Skeleton);
     if (!spine) {
       console.error('[SpineAutoPlay] spine不存在');
