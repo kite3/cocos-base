@@ -5,23 +5,37 @@ import {
   Component,
   instantiate,
   Prefab,
-  Vec3,
-} from "cc";
-import {
-  fadeOut,
-  getContentSizeWithScale,
-  moveAndFadeIn,
-} from "../utils/common";
+  Vec3
+} from 'cc';
+import { getContentSizeWithScale } from 'db://assets/scripts/utils/common';
+import { fadeIn, fadeOutNode } from 'db://assets/scripts/utils/microani';
+import { moveAnim, moveNodeY } from '../utils/transform';
 const { ccclass, property } = _decorator;
 
-@ccclass("XiuweiAni")
+@ccclass('XiuweiAni')
 export class XiuweiAni extends Component {
-  @property(Prefab)
-  templateNode: Prefab = null; // 预制体模板节点
-  @property(CCFloat)
+  @property({
+    type: Prefab,
+    displayName: '预制体模板'
+  })
+  templateNode: Prefab = null; 
+
+  @property({
+    type: CCFloat,
+    displayName: '缩放值'
+  })
   scaleValue: number = 1;
 
-  @property(CCBoolean)
+  @property({
+    type: CCFloat,
+    displayName: '偏移率'
+  })
+  offsetRate: number = 0.55;
+
+  @property({
+    type: CCBoolean,
+    displayName: '自动初始化'
+  })
   autoInit: boolean = true;
 
   duration = 0.7;
@@ -40,7 +54,7 @@ export class XiuweiAni extends Component {
       return;
     }
     this.hasInit = true;
-    console.log("修为动画init", this.templateNode?.name);
+    console.log('修为动画init', this.templateNode?.name);
     // 无限循环调用，每次间隔一定时间
     this.schedule(() => {
       this.spawnAndAnimate();
@@ -50,7 +64,7 @@ export class XiuweiAni extends Component {
 
   stopAni() {
     this.unscheduleAllCallbacks();
-    console.log("修为动画stopAni", this.templateNode?.name);
+    console.log('修为动画stopAni', this.templateNode?.name);
   }
 
   async spawnAndAnimate() {
@@ -62,18 +76,26 @@ export class XiuweiAni extends Component {
     newNode.scale = new Vec3(this.scaleValue, this.scaleValue, 1); // 设置节点缩放
 
     let height = getContentSizeWithScale(this.node).height;
-    let offsetY = Math.floor((height / 2) * 0.55);
+    let offsetY = Math.floor((height / 2) * this.offsetRate);
     // 起始和结束位置
     const startPos = new Vec3(0, 0 - offsetY - 15, 0);
     const endPos = new Vec3(0, 0 + offsetY - 15, 0);
 
     // 设置初始位置
     newNode.setPosition(startPos);
-    newNode.setSiblingIndex(this.node.children.length - 2); //当前试玩独有逻辑
 
     // 执行动画：从起始位置到结束位置
-    await moveAndFadeIn(newNode, startPos, endPos, this.duration, "linear");
+    await Promise.all([
+      moveAnim({
+        node: newNode,
+        duration: this.duration,
+        initPosition: startPos,
+        targetPosition: endPos,
+        easing: 'linear'
+      }),
+      fadeIn(newNode, this.duration)
+    ]);
     // 动画结束后，节点淡出并销毁
-    await fadeOut(newNode, this.fadeDuration);
+    await fadeOutNode(newNode, this.fadeDuration);
   }
 }

@@ -177,17 +177,21 @@ export async function doubleScaleAndMoveForHitNumber({
 }: {
   hitNumberNode: Node;
   hitValue: number;
-  container: Node;
-  centerNode: Node;
+  container?: Node;
+  centerNode?: Node;
 }) {
-  container.addChild(hitNumberNode);
+  if (container) {
+    container.addChild(hitNumberNode);
+  }
 
-  // 设置初始位置
-  const centerWorldPos = centerNode.getWorldPosition();
-  const localPos = container
-    .getComponent(UITransform)
-    .convertToNodeSpaceAR(centerWorldPos);
-  hitNumberNode.setPosition(localPos);
+  if (centerNode) {
+    // 设置初始位置
+    const centerWorldPos = centerNode.getWorldPosition();
+    const localPos = container
+      .getComponent(UITransform)
+      .convertToNodeSpaceAR(centerWorldPos);
+    hitNumberNode.setPosition(localPos);
+  }
 
   // 获取当前攻击力数值
   const labelComponent = hitNumberNode.getComponent(Label);
@@ -199,12 +203,12 @@ export async function doubleScaleAndMoveForHitNumber({
 
   // 动画序列：
   // 1. 第一阶段：放大 + 上移
-  const phase1Duration = 0.3;
+  const phase1Duration = 0.5;
   const phase1MoveY = 100;
   const phase1Scale = new Vec3(1.25, 1.25, 1);
 
   // 2. 第二阶段：缩小 + 上移
-  const phase2Duration = 0.3;
+  const phase2Duration = 0.5;
   const phase2MoveY = 80;
   const phase2Scale = new Vec3(0.75, 0.75, 1);
 
@@ -658,6 +662,97 @@ export function transitionLabelValue({
         // 确保最终值准确
         if (label && label.isValid) {
           label.string = format(targetValue);
+        }
+        resolve();
+      })
+      .start();
+  });
+}
+
+/**
+ * 贝塞尔曲线飞行动画（二次贝塞尔曲线，形成抛物线效果）
+ * @param node 要移动的节点
+ * @param startPos 起始位置
+ * @param endPos 结束位置
+ * @param height 控制点高度（相对于起点和终点中点的Y轴偏移）
+ * @param duration 动画时长
+ * @param easing 缓动函数
+ * @param onProgress 进度回调，参数为进度值(0-1)
+ * @returns Promise，动画完成时resolve
+ */
+export function bezierCurveFly({
+  node,
+  startPos,
+  endPos,
+  height = 200,
+  duration = 1.0,
+  easing = 'sineInOut',
+  onProgress
+}: {
+  node: Node;
+  startPos: Vec3;
+  endPos: Vec3;
+  height?: number;
+  duration?: number;
+  easing?: TweenEasing;
+  onProgress?: (progress: number) => void;
+}): Promise<void> {
+  return new Promise(resolve => {
+    if (!node || !node.isValid) {
+      resolve();
+      return;
+    }
+
+    // 计算控制点（在起点和终点的中点上方）
+    const midX = (startPos.x + endPos.x) / 2;
+    const midY = (startPos.y + endPos.y) / 2;
+    const controlPoint = new Vec3(midX, midY + height, startPos.z);
+
+    // 设置初始位置
+    node.active = true;
+    node.setPosition(startPos);
+
+    // 二次贝塞尔曲线公式: B(t) = (1-t)²P₀ + 2(1-t)tP₁ + t²P₂
+    // P₀ = startPos, P₁ = controlPoint, P₂ = endPos
+    const progressObj = { t: 0 };
+    tween(progressObj)
+      .to(
+        duration,
+        { t: 1 },
+        {
+          easing,
+          onUpdate: () => {
+            if (!node || !node.isValid) {
+              return;
+            }
+            const t = progressObj.t;
+            // 计算贝塞尔曲线上的点
+            const oneMinusT = 1 - t;
+            const x =
+              oneMinusT * oneMinusT * startPos.x +
+              2 * oneMinusT * t * controlPoint.x +
+              t * t * endPos.x;
+            const y =
+              oneMinusT * oneMinusT * startPos.y +
+              2 * oneMinusT * t * controlPoint.y +
+              t * t * endPos.y;
+            const z =
+              oneMinusT * oneMinusT * startPos.z +
+              2 * oneMinusT * t * controlPoint.z +
+              t * t * endPos.z;
+
+            node.setPosition(x, y, z);
+
+            if (onProgress) {
+              onProgress(t);
+            }
+          }
+        }
+      )
+      .call(() => {
+        // 确保最终位置准确
+        if (node && node.isValid) {
+          node.setPosition(endPos);
         }
         resolve();
       })
