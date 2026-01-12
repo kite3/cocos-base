@@ -1,0 +1,35 @@
+import { _decorator, Component, Node} from 'cc';
+const { ccclass, property } = _decorator;
+import { playOneShot } from 'db://assets/core/scripts/baseManager/AudioManager';
+import {
+  globalEvent,
+  GlobalEvent,
+  AUDIO_ENUM,
+  gameFigure
+} from './global';
+
+@ccclass('<%UnderscoreCaseClassName%>')
+export class <%UnderscoreCaseClassName%> extends Component {
+  private _initPosition: Vec3 = new Vec3();
+  private _initScale: Vec3 = new Vec3();
+  onLoad() {
+    this._initPosition = this.node.position.clone();
+    this._initScale = this.node.getScale().clone();
+    //通用组件模板，默认提供全局事件绑定、UI事件绑定、初始化方法
+    this.bindGlobalEvent();
+    this.bindUIEvent();
+    this.init();
+  }
+  update(deltaTime: number) {}
+
+  bindGlobalEvent() {
+    globalEvent.on(GlobalEvent.GAME_RESET, this.init, this);
+  }
+
+  bindUIEvent() {}
+
+  init() {
+    this.node.setPosition(this._initPosition);
+    this.node.setScale(this._initScale);
+  }
+}
