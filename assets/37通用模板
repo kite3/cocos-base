@@ -1,4 +1,4 @@
-import { _decorator, Component, Node} from 'cc';
+import { _decorator, Component, Node, Vec3} from 'cc';
 const { ccclass, property } = _decorator;
 import { playOneShot } from 'db://assets/core/scripts/baseManager/AudioManager';
 import {
@@ -6,7 +6,7 @@ import {
   GlobalEvent,
   AUDIO_ENUM,
   gameFigure
-} from './global';
+} from 'db://assets/scripts/global';
 
 @ccclass('<%UnderscoreCaseClassName%>')
 export class <%UnderscoreCaseClassName%> extends Component {

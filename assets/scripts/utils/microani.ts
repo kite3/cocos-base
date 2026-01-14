@@ -9,21 +9,21 @@ import {
   tween,
   TweenEasing,
   UITransform,
-  Vec3
-} from 'cc';
-import { getUIOpacity, sleep } from './common';
-import { scaleAnim, moveNodeY, moveAnim } from './transform';
+  Vec3,
+} from "cc";
+import { getUIOpacity, sleep } from "./common";
+import { scaleAnim, moveNodeY, moveAnim } from "./transform";
 
 export function fadeIn(node: Node, duration = 0.4) {
   return new Promise((resolve, reject) => {
     if (!node) {
-      console.warn('[fadeIn]节点为空');
-      resolve('');
+      console.warn("[fadeIn]节点为空");
+      resolve("");
       return;
     }
     if (!node.isValid) {
-      console.warn('[fadeIn]节点已销毁', node.name);
-      resolve('');
+      console.warn("[fadeIn]节点已销毁", node.name);
+      resolve("");
       return;
     }
     node.active = true;
@@ -33,14 +33,14 @@ export function fadeIn(node: Node, duration = 0.4) {
       .to(
         duration,
         {
-          opacity: 255
+          opacity: 255,
         },
         {
-          easing: 'quadOut'
+          easing: "quadOut",
         }
       )
       .call(() => {
-        resolve('');
+        resolve("");
       })
       .start();
   });
@@ -48,11 +48,11 @@ export function fadeIn(node: Node, duration = 0.4) {
 
 export function fadeOutNode(node: Node, duration = 0.4, isDestroy = true) {
   if (!node) {
-    console.warn('[fadeOut]节点为空');
+    console.warn("[fadeOut]节点为空");
     return Promise.resolve();
   }
   if (!node.isValid) {
-    console.warn('[fadeOut]节点已销毁', node.name);
+    console.warn("[fadeOut]节点已销毁", node.name);
     return Promise.resolve();
   }
   return new Promise((resolve, reject) => {
@@ -61,10 +61,10 @@ export function fadeOutNode(node: Node, duration = 0.4, isDestroy = true) {
       .to(
         duration,
         {
-          opacity: 0
+          opacity: 0,
         },
         {
-          easing: 'quadOut'
+          easing: "quadOut",
         }
       )
       .call(() => {
@@ -73,7 +73,7 @@ export function fadeOutNode(node: Node, duration = 0.4, isDestroy = true) {
         } else {
           node.active = false;
         }
-        resolve('');
+        resolve("");
       })
       .start();
   });
@@ -82,7 +82,7 @@ export function fadeOutNode(node: Node, duration = 0.4, isDestroy = true) {
 export function scaleIn(
   node: Node,
   duration: number = 0.4,
-  easing: TweenEasing = 'quadOut'
+  easing: TweenEasing = "quadOut"
 ) {
   return new Promise((resolve, reject) => {
     node.active = true;
@@ -91,7 +91,7 @@ export function scaleIn(
     tween(node)
       .to(duration, { scale: originScale }, { easing })
       .call(() => {
-        resolve('');
+        resolve("");
       })
       .start();
   });
@@ -114,10 +114,10 @@ export function scaleInBounce(
     node.setScale(0, 0, 0);
 
     tween(node)
-      .to(duration * 0.6, { scale: overshootScale }, { easing: 'quadOut' })
-      .to(duration * 0.4, { scale: originScale }, { easing: 'backOut' })
+      .to(duration * 0.6, { scale: overshootScale }, { easing: "quadOut" })
+      .to(duration * 0.4, { scale: originScale }, { easing: "backOut" })
       .call(() => {
-        resolve('');
+        resolve("");
       })
       .start();
   });
@@ -128,16 +128,16 @@ export const movePointAToPointB = (
   startPos: Vec3,
   endPos: Vec3,
   duration = 0.3,
-  easing: TweenEasing = 'sineInOut'
+  easing: TweenEasing = "sineInOut"
 ) => {
-  return new Promise(resolve => {
+  return new Promise((resolve) => {
     node.active = true;
     node.setPosition(startPos);
 
     tween(node)
       .to(duration, { position: endPos }, { easing })
       .call(() => {
-        resolve('');
+        resolve("");
       })
       .start();
   });
@@ -147,9 +147,9 @@ export const moveNodeAToNodeB = (
   startNode: Node,
   endNode: Node,
   duration = 0.5,
-  easing: TweenEasing = 'sineInOut'
+  easing: TweenEasing = "sineInOut"
 ) => {
-  return new Promise(resolve => {
+  return new Promise((resolve) => {
     startNode.active = true;
     const endPos = startNode.parent
       .getComponent(UITransform)
@@ -157,7 +157,7 @@ export const moveNodeAToNodeB = (
     tween(startNode)
       .to(duration, { position: endPos }, { easing })
       .call(() => {
-        resolve('');
+        resolve("");
       })
       .start();
   });
@@ -173,7 +173,7 @@ export async function doubleScaleAndMoveForHitNumber({
   hitNumberNode,
   hitValue,
   container,
-  centerNode
+  centerNode,
 }: {
   hitNumberNode: Node;
   hitValue: number;
@@ -198,7 +198,7 @@ export async function doubleScaleAndMoveForHitNumber({
   if (labelComponent) {
     labelComponent.string = hitValue.toString();
   } else {
-    console.warn('[怪物] 伤害数值节点上找不到Label组件');
+    console.warn("[怪物] 伤害数值节点上找不到Label组件");
   }
 
   // 动画序列：
@@ -223,9 +223,9 @@ export async function doubleScaleAndMoveForHitNumber({
         duration: phase1Duration,
         initScale: new Vec3(0.3, 0.3, 1),
         targetScale: phase1Scale,
-        easing: 'backOut'
+        easing: "backOut",
       }),
-      moveNodeY(hitNumberNode, phase1Duration, phase1MoveY)
+      moveNodeY(hitNumberNode, phase1Duration, phase1MoveY),
     ]);
 
     // 第二阶段：缩小并继续上移
@@ -235,15 +235,15 @@ export async function doubleScaleAndMoveForHitNumber({
         duration: phase2Duration,
         initScale: phase1Scale,
         targetScale: phase2Scale,
-        easing: 'quadOut'
+        easing: "quadOut",
       }),
-      moveNodeY(hitNumberNode, phase2Duration, phase2MoveY)
+      moveNodeY(hitNumberNode, phase2Duration, phase2MoveY),
     ]);
 
     // 第三阶段：渐变消失
     await fadeOutNode(hitNumberNode, phase3Duration, true);
   } catch (error) {
-    console.error('[怪物] 伤害数值动画执行错误:', error);
+    console.error("[怪物] 伤害数值动画执行错误:", error);
     // 确保节点被销毁
     if (hitNumberNode && hitNumberNode.isValid) {
       hitNumberNode.destroy();
@@ -256,7 +256,7 @@ async function _startValueAnimation({
   parentNode,
   initY,
   targetY,
-  duration
+  duration,
 }: {
   valuePrefab: Prefab;
   parentNode: Node;
@@ -272,7 +272,7 @@ async function _startValueAnimation({
     duration,
     initPosition: new Vec3(0, initY, 0),
     targetPosition: new Vec3(0, targetY, 0),
-    easing: 'linear'
+    easing: "linear",
   });
   await fadeOutNode(valueNode, duration);
 }
@@ -291,7 +291,7 @@ export async function xiuweiAnimation({
   initY = -40,
   targetY = 40,
   duration = 0.7,
-  interval = 0.5
+  interval = 0.5,
 }: {
   valuePrefab: Prefab;
   parentNode: Node;
@@ -320,7 +320,7 @@ export function transitionHeight({
   initHeight,
   destHeight,
   duration = 0.4,
-  easing = 'linear'
+  easing = "linear",
 }: {
   node: Node;
   initHeight: number;
@@ -328,7 +328,7 @@ export function transitionHeight({
   duration?: number;
   easing?: TweenEasing;
 }): Promise<void> {
-  return new Promise(resolve => {
+  return new Promise((resolve) => {
     const uiTransform = node.getComponent(UITransform);
     if (!destHeight) {
       destHeight = uiTransform.height;
@@ -342,7 +342,7 @@ export function transitionHeight({
           easing,
           onUpdate: () => {
             uiTransform.height = heightObj.height;
-          }
+          },
         }
       )
       .call(() => {
@@ -364,6 +364,47 @@ export async function fadeFlash(
     await fadeOutNode(node, duration, false);
     await sleep(delay);
   }
+}
+
+/**
+ * 循环透明度闪烁效果--支持取消（用于告警）
+ * @param node 要闪烁的节点
+ * @param duration 每次闪烁的时长，默认0.5秒
+ * @param delay 闪烁间隔，默认0.4秒
+ * @returns 停止函数，调用后停止闪烁
+ */
+export function fadeFlashInfinite(
+  node: Node,
+  duration = 0.4,
+  delay = 0.4
+): () => void {
+  if (!node || !node.isValid) {
+    console.warn("[fadeFlashInfinite] 节点无效");
+    return () => {
+      node.active = false;
+    };
+  }
+
+  node.active = true;
+
+  let isStopped = false;
+
+  const flashLoop = async () => {
+    while (!isStopped && node && node.isValid) {
+      await fadeIn(node, duration);
+      if (isStopped || !node || !node.isValid) break;
+      await fadeOutNode(node, duration, false);
+      if (isStopped || !node || !node.isValid) break;
+      await sleep(delay);
+    }
+  };
+
+  flashLoop();
+
+  return () => {
+    isStopped = true;
+    node.active = false;
+  };
 }
 
 /**
@@ -423,7 +464,7 @@ export async function playCardSelectAnimation(
 ): Promise<void> {
   const cardA = selectedCard;
   const cardB = selectedCard.parent.children.find(
-    child => child !== selectedCard
+    (child) => child !== selectedCard
   );
 
   // 避免重复点击
@@ -435,20 +476,20 @@ export async function playCardSelectAnimation(
     const parsedMinScale = originalScaleA.x * minScale;
     const parsedMaxScale = originalScaleA.x * maxScale;
 
-    await new Promise(resolve => {
+    await new Promise((resolve) => {
       tween(cardA)
         .to(duration, { scale: new Vec3(parsedMinScale, parsedMinScale, 1) })
         .call(() => {
           tween(cardA)
             .to(duration, {
-              scale: new Vec3(parsedMaxScale, parsedMaxScale, 1)
+              scale: new Vec3(parsedMaxScale, parsedMaxScale, 1),
             })
             .start();
 
           cardB.getComponent(Sprite).grayscale = true;
           tween(cardB)
             .to(duration, {
-              scale: new Vec3(parsedMinScale, parsedMinScale, 1)
+              scale: new Vec3(parsedMinScale, parsedMinScale, 1),
             })
             .call(() => {
               resolve(null);
@@ -474,11 +515,11 @@ export function shakeRotation(
   shakeAngle: number = 15,
   shakeDuration: number = 0.2,
   shakeCount: number = 2,
-  easing: TweenEasing = 'sineInOut'
+  easing: TweenEasing = "sineInOut"
 ): Promise<void> {
-  return new Promise(resolve => {
+  return new Promise((resolve) => {
     if (!node || !node.isValid) {
-      console.warn('[shakeRotation] 节点无效');
+      console.warn("[shakeRotation] 节点无效");
       resolve();
       return;
     }
@@ -494,7 +535,7 @@ export function shakeRotation(
       shakeSequence = shakeSequence.to(
         shakeDuration,
         {
-          angle: originalRotation + shakeAngle
+          angle: originalRotation + shakeAngle,
         },
         { easing }
       );
@@ -503,7 +544,7 @@ export function shakeRotation(
       shakeSequence = shakeSequence.to(
         shakeDuration,
         {
-          angle: originalRotation - shakeAngle
+          angle: originalRotation - shakeAngle,
         },
         { easing }
       );
@@ -514,7 +555,7 @@ export function shakeRotation(
       .to(
         shakeDuration,
         {
-          angle: originalRotation
+          angle: originalRotation,
         },
         { easing }
       )
@@ -537,13 +578,13 @@ export function typewriterEffect(
   label: Label,
   speed: number = 0.05
 ): Promise<void> {
-  return new Promise(resolve => {
+  return new Promise((resolve) => {
     const uiTransform = label.node.getComponent(UITransform);
     const originalAnchorX = uiTransform.anchorX;
     const originalPosition = label.node.position.clone();
     const text = label.string;
 
-    label.string = '';
+    label.string = "";
     uiTransform.anchorX = 0;
 
     const offsetX =
@@ -587,10 +628,18 @@ export function shakeMoveInfinite(
 
   const shakeTween = tween(node)
     .to(duration, {
-      position: new Vec3(originalX + distance, node.position.y, node.position.z)
+      position: new Vec3(
+        originalX + distance,
+        node.position.y,
+        node.position.z
+      ),
     })
     .to(duration, {
-      position: new Vec3(originalX - distance, node.position.y, node.position.z)
+      position: new Vec3(
+        originalX - distance,
+        node.position.y,
+        node.position.z
+      ),
     })
     .union()
     .repeatForever()
@@ -616,8 +665,8 @@ export function transitionLabelValue({
   targetValue,
   initValue,
   duration = 0.5,
-  easing = 'linear',
-  formatFn
+  easing = "linear",
+  formatFn,
 }: {
   label: Label;
   targetValue: number;
@@ -626,7 +675,7 @@ export function transitionLabelValue({
   easing?: TweenEasing;
   formatFn?: (value: number) => string;
 }): Promise<void> {
-  return new Promise(resolve => {
+  return new Promise((resolve) => {
     if (!label || !label.isValid) {
       resolve();
       return;
@@ -635,8 +684,8 @@ export function transitionLabelValue({
     // 如果没有提供初始值，尝试从label.string解析
     let startValue = initValue;
     if (startValue === undefined) {
-      const currentString = label.string || '0';
-      const parsed = parseFloat(currentString.replace(/[^\d.-]/g, ''));
+      const currentString = label.string || "0";
+      const parsed = parseFloat(currentString.replace(/[^\d.-]/g, ""));
       startValue = isNaN(parsed) ? 0 : parsed;
     }
 
@@ -655,7 +704,7 @@ export function transitionLabelValue({
             if (label && label.isValid) {
               label.string = format(valueObj.value);
             }
-          }
+          },
         }
       )
       .call(() => {
@@ -686,8 +735,8 @@ export function bezierCurveFly({
   endPos,
   height = 200,
   duration = 1.0,
-  easing = 'sineInOut',
-  onProgress
+  easing = "sineInOut",
+  onProgress,
 }: {
   node: Node;
   startPos: Vec3;
@@ -697,7 +746,7 @@ export function bezierCurveFly({
   easing?: TweenEasing;
   onProgress?: (progress: number) => void;
 }): Promise<void> {
-  return new Promise(resolve => {
+  return new Promise((resolve) => {
     if (!node || !node.isValid) {
       resolve();
       return;
@@ -746,7 +795,7 @@ export function bezierCurveFly({
             if (onProgress) {
               onProgress(t);
             }
-          }
+          },
         }
       )
       .call(() => {
