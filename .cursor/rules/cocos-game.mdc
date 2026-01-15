@@ -5,4 +5,5 @@ alwaysApply: true
 1. ts 中涉及 position 计算的，都必须考虑坐标系变换，因为不同节点可能处于不同坐标系。
 2. ts 中涉及向量的 API（Vec3 或 Vec2），都必须考虑该 API 的函数是否会修改原对象，如果会修改，需要先 clone()。
 3. assets\scripts\utils\common.ts 和 assets\scripts\utils\transform.ts 是工具函数集合的地方,很多实现可以从里边直接拿函数。
-4. 如果设置scale的放大、缩小，必须基于已有scale进行倍数处理，例如1.2倍，不要直接设置scale.x或scale.y为1.2。
+4. 如果设置 scale 的放大、缩小，必须基于已有 scale 进行倍数处理，例如 1.2 倍，不要直接设置 scale.x 或 scale.y 为 1.2。
+5. 脚本新增的遍历和方法默认都是 public。
